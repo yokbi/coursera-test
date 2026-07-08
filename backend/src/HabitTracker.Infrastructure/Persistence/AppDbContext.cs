@@ -1,10 +1,11 @@
+using HabitTracker.Application.Common.Interfaces;
 using HabitTracker.Domain.Common;
 using HabitTracker.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace HabitTracker.Infrastructure.Persistence;
 
-public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)
+public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options), IAppDbContext
 {
     public DbSet<User> Users => Set<User>();
     public DbSet<Habit> Habits => Set<Habit>();
