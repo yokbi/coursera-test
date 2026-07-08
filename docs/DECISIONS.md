@@ -34,6 +34,11 @@ One line per decision: context → choice → rationale.
 - Check-in edit window → server compares the target date to "today" in the user's timezone; allowed range: today-7 … today → per spec.
 - Reorder API → `PUT /api/v1/habits/reorder` with the full ordered id list → simplest correct approach for small lists.
 
+- Effective streak start → `min(habit.StartDate, earliest completed check-in)` → backfilled check-ins (allowed 7 days back) may predate the habit's creation day and must still count toward streaks; also protects users whose local "today" is a day ahead of UTC.
+- Ownership failures → 404 (not 403) for habits belonging to another user → avoids confirming that a resource id exists (resource enumeration).
+- Boolean habit check-in values → clamped to 0/1; a zeroed check-in deletes the row so completion-rate denominators stay clean.
+- Container images → Docker Hub blob CDN blocked by egress policy; images pulled via `mirror.gcr.io` and tagged locally (`postgres:16-alpine`, `testcontainers/ryuk:0.9.0`) → CI environments with normal Docker Hub access need no change.
+
 ## Phase 4 — Frontend
 
 - Access token → kept in JS memory only; refresh token in httpOnly cookie; on app load `/auth/refresh` bootstraps the session → avoids XSS-readable token storage.
