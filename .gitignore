@@ -1,0 +1,11 @@
+# Env / secrets
+.env
+*.local
+
+# OS
+.DS_Store
+
+# IDE
+.idea/
+.vs/
+*.user
