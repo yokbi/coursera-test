@@ -1,0 +1,103 @@
+# Security Overview
+
+Threat model: a public, multi-tenant web app holding low-sensitivity personal data
+(habit history) plus credentials. Primary risks: account takeover, cross-tenant data
+access (IDOR), token theft, brute force, and injection. Mitigations below map to the
+OWASP Top 10 (2021).
+
+## A01 — Broken Access Control
+
+- Every Application-layer query/command filters by the authenticated `userId` taken
+  from the JWT `sub` claim — never from the request body.
+- A habit owned by someone else is indistinguishable from a missing one (**404**, not
+  403), preventing resource enumeration.
+- Integration tests (`HabitApiTests.Idor_UserACannotTouchUserBData`) prove user A
+  cannot read/update/archive/check-in/reorder user B's data.
+
+## A02 — Cryptographic Failures
+
+- Passwords: `PasswordHasher<T>` (ASP.NET Identity v3 defaults — PBKDF2-HMAC-SHA256,
+  100k iterations, 128-bit salt, per-hash format versioning).
+- Refresh tokens: 512-bit random values; only their SHA-256 hashes are stored, so a
+  database leak yields no usable tokens.
+- JWTs signed with HMAC-SHA256; the signing key must be ≥32 chars and comes from
+  configuration (env var / user-secrets) — the app refuses to start without it.
+- TLS/HSTS: `UseHsts()` outside Development; deploy behind HTTPS.
+
+## A03 — Injection
+
+- All persistence goes through EF Core LINQ (parameterized). There is no raw SQL,
+  no string-concatenated queries anywhere.
+- JSON model binding with strict DTO records; unknown enum values are rejected.
+
+## A04 — Insecure Design
+
+- Account lockout: 5 consecutive failures → 15-minute lockout.
+- Check-in edit window (7 days, user-timezone aware) enforced server-side.
+- Soft delete everywhere: user data is never hard-deleted by user actions.
+
+## A05 — Security Misconfiguration
+
+- Security headers on every API response: `X-Content-Type-Options: nosniff`,
+  `X-Frame-Options: DENY`, `Content-Security-Policy: default-src 'none';
+  frame-ancestors 'none'`, `Referrer-Policy: no-referrer`, `Permissions-Policy`,
+  `Cache-Control: no-store`. Verified by an integration test.
+- CORS: explicit allowlist (`Cors:AllowedOrigins`, default `http://localhost:3000`)
+  with credentials; no wildcards.
+- ProblemDetails (RFC 7807) responses never include stack traces or internals
+  (asserted in tests).
+
+## A07 — Identification & Authentication Failures
+
+- Access token TTL 15 minutes; refresh token 30 days, httpOnly + Secure +
+  SameSite=Strict cookie scoped to `/api/v1/auth`.
+- Refresh rotation on every use; **reuse of a rotated token revokes the whole token
+  family** (theft detection). Logout, password change, and account deletion revoke
+  server-side.
+- Generic `401` for unknown email / wrong password / locked account — no user
+  enumeration; a dummy hash verification equalizes response timing for unknown emails.
+- Rate limiting (built-in .NET 8 limiter): 5 requests/min/IP on register, login,
+  change-password, delete-account; 60/min on refresh. Returns **429**.
+
+## CSRF
+
+- The refresh cookie is SameSite=Strict, and `refresh`/`logout` additionally require
+  the custom `X-CSRF: 1` header, which cross-site requests cannot set.
+- All other mutating endpoints authenticate via the `Authorization` header (not
+  cookies), so they are not CSRF-able.
+
+## A08 — Software & Data Integrity
+
+- Dependencies pinned in lockfiles (`package-lock.json`, csproj versions).
+- `npm audit` run as part of hardening; no known-vulnerable packages shipped.
+
+## A09 — Logging & Monitoring
+
+- Serilog structured logging with request logging. Passwords, tokens, and cookies
+  are never logged (only method/path/status/duration and unhandled exceptions).
+- Unhandled exceptions are logged server-side while the client receives a generic 500.
+
+## A10 — SSRF
+
+- The API performs no outbound requests derived from user input.
+
+## Input validation
+
+- FluentValidation on every command: length limits, whitelist weekday names, hex
+  color regex, IANA timezone validation, numeric ranges (target ≤ 100000,
+  timesPerWeek 1–7), email format, password policy. Mirrored client-side with zod.
+
+## Secrets
+
+- No secrets in the repository. `appsettings.json` ships empty values; Development
+  uses a clearly-marked dev-only key. Production configuration comes from environment
+  variables (`ConnectionStrings__Default`, `Jwt__SigningKey`) or `dotnet user-secrets`.
+  See `.env.example`.
+
+## Frontend
+
+- Access token kept in JS memory only (never localStorage); refresh token is
+  httpOnly. The `ht_session` cookie is a non-sensitive routing marker containing `1`.
+- Client-side validation mirrors server rules; server remains authoritative.
+- React's default escaping everywhere; no `dangerouslySetInnerHTML` with dynamic data
+  (the only usage is a static, constant theme-init script).
