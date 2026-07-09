@@ -191,7 +191,8 @@ function HabitsPageInner() {
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between gap-2">
         <h2 className="text-xl font-semibold">{tr.habits.title}</h2>
-        {!creating && !editing ? (
+        {/* Hidden while the empty state shows its own CTA to avoid duplicate buttons. */}
+        {!creating && !editing && active.length > 0 ? (
           <button type="button" onClick={() => setCreating(true)} className={primaryButtonClass}>
             {tr.habits.newHabit}
           </button>
