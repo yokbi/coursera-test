@@ -45,6 +45,16 @@ One line per decision: context → choice → rationale.
 - Route guard → Next.js middleware checks presence of the refresh cookie (same host `localhost`, so the API cookie is visible to the frontend server) → redirect to `/giris` without a round-trip.
 - Data fetching → small typed `fetch` wrapper with automatic 401→refresh→retry; no TanStack Query → app is small, YAGNI.
 - Theme → class-based dark mode with `localStorage` persistence + `prefers-color-scheme` default → no dependency.
+- Route guard cookie → separate non-httpOnly `ht_session` marker (value `1`) set by the client, because the real refresh cookie is path-scoped to `/api/v1/auth` and invisible to page requests → marker is a pure routing hint, carries nothing sensitive.
+- Next.js 16 renamed `middleware.ts` → `proxy.ts` (exported `proxy` function) → followed the new convention.
+- Habit type is immutable after creation (edit form disables it) → changing type would make historical check-in values meaningless.
+- Reorder UI → up/down buttons instead of drag-and-drop → keyboard accessible and dependency-free (YAGNI).
+- Check-in steps → +1 for quantity, +5 minutes for duration habits → matches common logging granularity.
+
+## Phase 5 — E2E & hardening
+
+- Playwright boots the API (`dotnet run`) and Next dev server via `webServer`; PostgreSQL from docker-compose must already be up (documented) → keeps the E2E entry point to one command.
+- E2E runs serially in one browser context (register → … → logout is one continuous journey per spec).
 
 ## Future ideas (explicitly out of scope, not built)
 
