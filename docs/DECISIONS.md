@@ -56,6 +56,13 @@ One line per decision: context → choice → rationale.
 - Playwright boots the API (`dotnet run`) and Next dev server via `webServer`; PostgreSQL from docker-compose must already be up (documented) → keeps the E2E entry point to one command.
 - E2E runs serially in one browser context (register → … → logout is one continuous journey per spec).
 
+## Phase 6 — Final verification
+
+- Backend coverage (line, merged unit+integration): Domain **96.5%**, Application **97.2%**, combined **97.0%** — target was ≥80%.
+- `npm audit` → 2 moderate findings, both in `postcss` **bundled inside Next.js itself**; the only offered fix downgrades Next to 9.x. Accepted as upstream risk (build-time tooling, not runtime-exposed); revisit on the next Next.js release.
+- Playwright browsers → environment pre-installs Chromium at `/opt/pw-browsers/chromium`; config honors `PLAYWRIGHT_CHROMIUM_PATH` to avoid re-downloading. Without the variable, Playwright uses its default download.
+- Vitest 4 quirk → a `beforeEach` mock reset combined with a rejecting mock consumed inside a React component is misreported as an unhandled error; HabitCard tests install per-test implementations instead of resetting (documented in the test file).
+
 ## Future ideas (explicitly out of scope, not built)
 
 - Push/email notifications, social features, OAuth login, admin panel, analytics, mobile app.
