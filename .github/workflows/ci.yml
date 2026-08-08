@@ -1,0 +1,134 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Cancel superseded runs on the same ref.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend (build, unit, integration, coverage)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Restore
+        working-directory: backend
+        run: dotnet restore
+
+      - name: Build
+        working-directory: backend
+        run: dotnet build --no-restore --configuration Release
+
+      - name: Unit tests
+        working-directory: backend
+        run: >
+          dotnet test tests/HabitTracker.UnitTests
+          --no-build --configuration Release
+          --collect:"XPlat Code Coverage"
+          --logger "console;verbosity=normal"
+
+      # Integration tests spin up PostgreSQL via Testcontainers; the runner's
+      # Docker daemon serves them, so no service container is needed here.
+      - name: Integration tests
+        working-directory: backend
+        run: >
+          dotnet test tests/HabitTracker.IntegrationTests
+          --no-build --configuration Release
+          --collect:"XPlat Code Coverage"
+          --logger "console;verbosity=normal"
+
+      - name: Coverage gate (Domain + Application >= 80%)
+        run: python3 .github/scripts/check-coverage.py
+
+  frontend:
+    name: Frontend (lint, unit, build)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install
+        working-directory: frontend
+        run: npm ci
+
+      - name: Lint
+        working-directory: frontend
+        run: npm run lint
+
+      - name: Unit tests
+        working-directory: frontend
+        run: npm test
+
+      - name: Build
+        working-directory: frontend
+        run: npm run build
+
+  e2e:
+    name: E2E (Playwright against the real stack)
+    runs-on: ubuntu-latest
+    services:
+      # Credentials must match backend/src/HabitTracker.Api/appsettings.Development.json.
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: habittracker
+          POSTGRES_USER: habittracker
+          POSTGRES_PASSWORD: dev_only_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U habittracker -d habittracker"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Install Playwright browser
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+
+      # playwright.config.ts boots the API and the Next dev server itself.
+      # The API migrates on startup in Development.
+      - name: Run E2E suite
+        working-directory: frontend
+        run: npx playwright test
+        env:
+          CI: "true"
+
+      - name: Upload report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: frontend/playwright-report/
+          retention-days: 7
