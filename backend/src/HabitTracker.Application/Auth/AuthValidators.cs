@@ -43,7 +43,9 @@ public class ChangePasswordRequestValidator : AbstractValidator<ChangePasswordRe
 {
     public ChangePasswordRequestValidator()
     {
-        RuleFor(x => x.CurrentPassword).NotEmpty().MaximumLength(PasswordRules.MaxLength);
+        // May be empty for a Google-only account setting its first password; the
+        // service still verifies it against the stored hash when one exists.
+        RuleFor(x => x.CurrentPassword).MaximumLength(PasswordRules.MaxLength);
         RuleFor(x => x.NewPassword).StrongPassword();
     }
 }
@@ -52,6 +54,8 @@ public class DeleteAccountRequestValidator : AbstractValidator<DeleteAccountRequ
 {
     public DeleteAccountRequestValidator()
     {
-        RuleFor(x => x.Password).NotEmpty().MaximumLength(PasswordRules.MaxLength);
+        // Empty is allowed only for accounts without a password (Google-only);
+        // the service still verifies it whenever a hash exists.
+        RuleFor(x => x.Password).MaximumLength(PasswordRules.MaxLength);
     }
 }

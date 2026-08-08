@@ -62,6 +62,54 @@ Revokes **all** refresh tokens, then returns a fresh token pair (200, register s
 
 Soft-deletes and anonymizes the account, revokes all tokens, clears the cookie. **204**. **401** wrong password.
 
+## Google sign-in
+
+Server-side authorization-code flow with PKCE. The browser is redirected; the client secret stays on the server. A successful callback issues the **same** `ht_refresh` cookie the password flow issues, so nothing downstream changes.
+
+### GET /api/v1/auth/google/available (public)
+
+**200** `{ "available": true }` — whether this server has Google credentials configured. The UI hides the Google button when false.
+
+### GET /api/v1/auth/google/start?returnPath=/aliskanliklar (public, rate-limited)
+
+Sets a 10-minute `ht_oauth` cookie (httpOnly, Secure, **SameSite=Lax**, Path=`/api/v1/auth/google`) carrying the OAuth `state`, the PKCE verifier and the return path, then **302**s to Google.
+
+`returnPath` must be a relative same-origin path; anything else falls back to `/`.
+
+### GET /api/v1/auth/google/callback?code=&state=&error= (public, rate-limited)
+
+Verifies `state` against the flow cookie in constant time, exchanges the code with the PKCE verifier, then links or provisions the account:
+
+1. match on Google `sub`, else
+2. match on **verified** email — links Google to that existing account, else
+3. create a new passwordless account.
+
+**302** to `{Frontend:BaseUrl}/giris/google?next=<returnPath>` with `ht_refresh` set. That public page exchanges the cookie for a session and forwards.
+
+- **302** to `/giris?hata=google` when the user declines consent.
+- **401** for a missing/tampered `state`, a missing flow cookie, or an unverified provider email.
+
+### Passwordless accounts
+
+Accounts created through Google have no password until they set one:
+
+- `POST /auth/login` → **401** (generic message; no enumeration signal).
+- `POST /auth/change-password` → `currentPassword` may be empty; sets the first password. Accounts that already have one still must prove it.
+- `DELETE /auth/account` → `password` may be empty; deletion also releases the Google link so the identity can register again.
+
+`GET /api/v1/me` reports `hasPassword` and `linkedGoogle` so the UI can adapt.
+
+### Configuration
+
+```bash
+Authentication__Google__ClientId="…apps.googleusercontent.com"
+Authentication__Google__ClientSecret="…"
+Authentication__Google__RedirectUri="https://api.example.com/api/v1/auth/google/callback"
+Frontend__BaseUrl="https://app.example.com"
+```
+
+The redirect URI must match an authorized redirect URI in the Google Cloud console exactly.
+
 ## Profile
 
 ### GET /api/v1/me (auth)

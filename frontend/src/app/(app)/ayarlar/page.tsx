@@ -83,7 +83,8 @@ function TimezoneSection() {
   );
 }
 
-function PasswordSection() {
+function PasswordSection({ hasPassword }: { hasPassword: boolean }) {
+  const { setUser } = useAuth();
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -104,7 +105,8 @@ function PasswordSection() {
     setErrors({});
     setBusy(true);
     try {
-      await authApi.changePassword(currentPassword, newPassword);
+      const result = await authApi.changePassword(currentPassword, newPassword);
+      setUser(result.user);
       setMessage(tr.settings.passwordChanged);
       setCurrentPassword("");
       setNewPassword("");
@@ -130,16 +132,20 @@ function PasswordSection() {
           {message}
         </p>
       ) : null}
-      <Field label={tr.settings.currentPassword} htmlFor="current-password">
-        <input
-          id="current-password"
-          type="password"
-          autoComplete="current-password"
-          value={currentPassword}
-          onChange={(e) => setCurrentPassword(e.target.value)}
-          className={inputClass}
-        />
-      </Field>
+      {hasPassword ? (
+        <Field label={tr.settings.currentPassword} htmlFor="current-password">
+          <input
+            id="current-password"
+            type="password"
+            autoComplete="current-password"
+            value={currentPassword}
+            onChange={(e) => setCurrentPassword(e.target.value)}
+            className={inputClass}
+          />
+        </Field>
+      ) : (
+        <p className="text-sm text-slate-600 dark:text-slate-400">{tr.settings.setPasswordHelp}</p>
+      )}
       <Field label={tr.settings.newPassword} htmlFor="new-password" error={errors.newPassword}>
         <input
           id="new-password"
@@ -152,7 +158,11 @@ function PasswordSection() {
       </Field>
       <div>
         <button type="submit" disabled={busy} className={primaryButtonClass}>
-          {busy ? tr.common.loading : tr.settings.changePasswordButton}
+          {busy
+            ? tr.common.loading
+            : hasPassword
+              ? tr.settings.changePasswordButton
+              : tr.settings.setPasswordButton}
         </button>
       </div>
     </form>
@@ -221,14 +231,17 @@ export default function SettingsPage() {
           {tr.settings.profile}
         </h3>
         <p className="text-sm text-slate-600 dark:text-slate-400">{user?.email}</p>
+        {user?.linkedGoogle ? (
+          <p className="text-sm text-slate-600 dark:text-slate-400">🔗 {tr.settings.googleLinked}</p>
+        ) : null}
         <TimezoneSection />
       </section>
 
       <section aria-labelledby="password-title" className="flex flex-col gap-3">
         <h3 id="password-title" className="text-lg font-semibold">
-          {tr.settings.changePassword}
+          {user?.hasPassword === false ? tr.settings.setPassword : tr.settings.changePassword}
         </h3>
-        <PasswordSection />
+        <PasswordSection hasPassword={user?.hasPassword !== false} />
       </section>
 
       <section
