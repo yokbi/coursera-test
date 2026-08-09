@@ -31,6 +31,10 @@ export const tr = {
     passwordDigit: "Şifre en az bir rakam içermeli.",
     passwordMismatch: "Şifreler eşleşmiyor.",
     emailTaken: "Bu e-posta adresi kullanılamıyor.",
+    or: "veya",
+    googleSignIn: "Google ile devam et",
+    googleError: "Google ile giriş tamamlanamadı. Lütfen tekrar deneyin.",
+    googleSigningIn: "Google girişi tamamlanıyor…",
   },
   dashboard: {
     todayTitle: "Bugünkü alışkanlıklar",
@@ -124,6 +128,11 @@ export const tr = {
     themeLight: "Açık",
     themeDark: "Koyu",
     changePassword: "Şifre değiştir",
+    setPassword: "Şifre belirle",
+    setPasswordHelp:
+      "Hesabın Google ile oluşturulmuş. Şifre belirlersen e-posta ve şifreyle de giriş yapabilirsin.",
+    setPasswordButton: "Şifreyi belirle",
+    googleLinked: "Google hesabı bağlı",
     currentPassword: "Mevcut şifre",
     newPassword: "Yeni şifre",
     changePasswordButton: "Şifreyi güncelle",

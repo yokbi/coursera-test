@@ -59,6 +59,21 @@ OWASP Top 10 (2021).
 - Rate limiting (built-in .NET 8 limiter): 5 requests/min/IP on register, login,
   change-password, delete-account; 60/min on refresh. Returns **429**.
 
+## Google OAuth
+
+- Authorization-code flow with **PKCE**; the client secret never leaves the server.
+- OAuth CSRF: a random `state` is stored in a short-lived httpOnly `ht_oauth` cookie
+  and compared on callback with `CryptographicOperations.FixedTimeEquals`. The cookie
+  is SameSite=**Lax** because Strict would not survive Google's cross-site redirect
+  back; it carries no session authority, only flow state, and expires in 10 minutes.
+- Account takeover: an account is only linked by email when the provider reports
+  `email_verified`; unverified identities are rejected outright.
+- Open redirect: `returnPath` is accepted only as a relative same-origin path, checked
+  on both the callback and the landing page.
+- Passwordless accounts cannot be logged into with a password, and the generic 401 is
+  reused so their existence is not distinguishable.
+- Deleting an account releases its Google link, so no orphaned identity mapping remains.
+
 ## CSRF
 
 - The refresh cookie is SameSite=Strict, and `refresh`/`logout` additionally require

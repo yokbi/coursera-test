@@ -12,6 +12,7 @@ public interface IAuthService
 {
     Task<AuthResult> RegisterAsync(RegisterRequest request, CancellationToken ct = default);
     Task<AuthResult> LoginAsync(LoginRequest request, CancellationToken ct = default);
+    Task<AuthResult> LoginWithExternalIdentityAsync(ExternalIdentity identity, CancellationToken ct = default);
     Task<AuthResult> RefreshAsync(string refreshToken, CancellationToken ct = default);
     Task LogoutAsync(string? refreshToken, CancellationToken ct = default);
     Task<AuthResult> ChangePasswordAsync(Guid userId, ChangePasswordRequest request, CancellationToken ct = default);
@@ -77,7 +78,9 @@ public class AuthService(
             throw new UnauthorizedAppException(InvalidCredentialsMessage);
         }
 
-        if (!passwordHasher.Verify(user.PasswordHash, request.Password))
+        // Google-only accounts have no password; password login must fail for them
+        // with the same generic message, and still cost the same time.
+        if (user.PasswordHash is null || !passwordHasher.Verify(user.PasswordHash, request.Password))
         {
             user.FailedLoginCount++;
             if (user.FailedLoginCount >= MaxFailedAttempts)
@@ -90,6 +93,49 @@ public class AuthService(
             throw new UnauthorizedAppException(InvalidCredentialsMessage);
         }
 
+        user.FailedLoginCount = 0;
+        user.LockoutEndUtc = null;
+        return await IssueTokensAsync(user, ct);
+    }
+
+    /// <summary>
+    /// Signs in (or provisions) the account behind a verified external identity.
+    /// Matching is by provider subject first, then by verified email so an existing
+    /// password account gets linked instead of duplicated.
+    /// </summary>
+    public async Task<AuthResult> LoginWithExternalIdentityAsync(ExternalIdentity identity, CancellationToken ct = default)
+    {
+        if (!identity.EmailVerified)
+        {
+            // An unverified provider email could belong to someone else's account.
+            throw new UnauthorizedAppException("The provider did not verify this email address.");
+        }
+
+        var email = NormalizeEmail(identity.Email);
+
+        var user = await db.Users.FirstOrDefaultAsync(
+            u => u.GoogleSubject == identity.Subject && !u.IsDeleted, ct);
+
+        if (user is null)
+        {
+            user = await db.Users.FirstOrDefaultAsync(u => u.Email == email && !u.IsDeleted, ct);
+            if (user is not null)
+            {
+                user.GoogleSubject = identity.Subject;
+            }
+            else
+            {
+                user = new User { Email = email, GoogleSubject = identity.Subject };
+                db.Users.Add(user);
+            }
+        }
+        else if (user.Email != email)
+        {
+            // The provider is authoritative for the address behind this subject.
+            user.Email = email;
+        }
+
+        // A successful external sign-in clears any password-brute-force lockout.
         user.FailedLoginCount = 0;
         user.LockoutEndUtc = null;
         return await IssueTokensAsync(user, ct);
@@ -161,7 +207,10 @@ public class AuthService(
         await changePasswordValidator.ValidateAndThrowAsync(request, ct);
         var user = await GetActiveUserAsync(userId, ct);
 
-        if (!passwordHasher.Verify(user.PasswordHash, request.CurrentPassword))
+        // A Google-only account has no password to prove; this call sets its first one.
+        // The caller is already authenticated by a valid access token.
+        if (user.PasswordHash is not null &&
+            !passwordHasher.Verify(user.PasswordHash, request.CurrentPassword))
         {
             throw new UnauthorizedAppException("Current password is incorrect.");
         }
@@ -176,7 +225,8 @@ public class AuthService(
         await deleteAccountValidator.ValidateAndThrowAsync(request, ct);
         var user = await GetActiveUserAsync(userId, ct);
 
-        if (!passwordHasher.Verify(user.PasswordHash, request.Password))
+        if (user.PasswordHash is not null &&
+            !passwordHasher.Verify(user.PasswordHash, request.Password))
         {
             throw new UnauthorizedAppException("Password is incorrect.");
         }
@@ -187,6 +237,8 @@ public class AuthService(
         // Anonymize PII; keep the row so foreign keys and audit history stay intact.
         user.Email = $"deleted-{user.Id:N}@anonymized.invalid";
         user.PasswordHash = "!deleted";
+        // Release the Google link so the same Google account can register again.
+        user.GoogleSubject = null;
         await RevokeAllRefreshTokensAsync(userId, ct);
         await db.SaveChangesAsync(ct);
     }
@@ -251,7 +303,9 @@ public class AuthService(
         return new AuthResult(accessToken, expiresIn, rawRefreshToken, refreshExpiry, ToDto(user));
     }
 
-    private static UserDto ToDto(User user) => new(user.Id, user.Email, user.TimeZone, user.CreatedAt);
+    private static UserDto ToDto(User user) => new(
+        user.Id, user.Email, user.TimeZone, user.CreatedAt,
+        user.PasswordHash is not null, user.GoogleSubject is not null);
 
     private static string NormalizeEmail(string email) => email.Trim().ToLowerInvariant();
 

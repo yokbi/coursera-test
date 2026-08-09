@@ -24,6 +24,9 @@ export interface UserDto {
   email: string;
   timeZone: string;
   createdAt: string;
+  /** False for accounts created through Google that never set a password. */
+  hasPassword: boolean;
+  linkedGoogle: boolean;
 }
 
 export interface AuthResponse {

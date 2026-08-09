@@ -7,6 +7,7 @@ import { ApiError, authApi } from "@/lib/api";
 import { fieldErrors, registerSchema } from "@/lib/habit-schema";
 import { tr } from "@/lib/i18n/tr";
 import { Field, FormError, inputClass, primaryButtonClass } from "@/components/ui";
+import { GoogleSignInButton } from "@/components/GoogleSignInButton";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -92,6 +93,7 @@ export default function RegisterPage() {
           {submitting ? tr.common.loading : tr.auth.registerButton}
         </button>
       </form>
+      <GoogleSignInButton />
       <p className="text-sm text-slate-600 dark:text-slate-400">
         {tr.auth.haveAccount}{" "}
         <Link href="/giris" className="font-medium text-sky-600 hover:underline">

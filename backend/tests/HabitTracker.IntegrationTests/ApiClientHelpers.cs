@@ -6,7 +6,8 @@ namespace HabitTracker.IntegrationTests;
 
 public sealed record AuthResponseDto(string AccessToken, int ExpiresInSeconds, UserInfoDto User);
 
-public sealed record UserInfoDto(Guid Id, string Email, string TimeZone, DateTime CreatedAt);
+public sealed record UserInfoDto(
+    Guid Id, string Email, string TimeZone, DateTime CreatedAt, bool HasPassword, bool LinkedGoogle);
 
 public static class ApiClientHelpers
 {

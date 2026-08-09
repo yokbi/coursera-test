@@ -1,3 +1,4 @@
+using HabitTracker.Application.Auth;
 using HabitTracker.Application.Common.Interfaces;
 using HabitTracker.Infrastructure.Persistence;
 using HabitTracker.Infrastructure.Services;
@@ -17,6 +18,8 @@ public static class DependencyInjection
         services.AddScoped<IAppDbContext>(sp => sp.GetRequiredService<AppDbContext>());
 
         services.Configure<JwtOptions>(configuration.GetSection(JwtOptions.SectionName));
+        services.Configure<GoogleOAuthOptions>(configuration.GetSection(GoogleOAuthOptions.SectionName));
+        services.AddHttpClient<IExternalAuthClient, GoogleOAuthClient>();
         services.AddSingleton<IClock, SystemClock>();
         services.AddSingleton<IPasswordHasherService, PasswordHasherService>();
         services.AddSingleton<IJwtTokenGenerator, JwtTokenGenerator>();

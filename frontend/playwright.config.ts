@@ -31,7 +31,8 @@ export default defineConfig({
         "dotnet run --project ../backend/src/HabitTracker.Api --urls http://localhost:5000",
       url: "http://localhost:5000/health",
       reuseExistingServer: !process.env.CI,
-      timeout: 120_000,
+      // A cold CI runner restores and builds the solution before the API listens.
+      timeout: 240_000,
       env: { ASPNETCORE_ENVIRONMENT: "Development" },
     },
     {

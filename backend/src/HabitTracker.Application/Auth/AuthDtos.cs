@@ -8,7 +8,17 @@ public sealed record ChangePasswordRequest(string CurrentPassword, string NewPas
 
 public sealed record DeleteAccountRequest(string Password);
 
-public sealed record UserDto(Guid Id, string Email, string TimeZone, DateTime CreatedAt);
+/// <summary>
+/// HasPassword lets the UI offer "set a password" instead of "change password"
+/// for accounts created through Google; LinkedGoogle drives the linked-account badge.
+/// </summary>
+public sealed record UserDto(
+    Guid Id,
+    string Email,
+    string TimeZone,
+    DateTime CreatedAt,
+    bool HasPassword,
+    bool LinkedGoogle);
 
 /// <summary>RefreshToken is the raw opaque token; the API layer moves it into an httpOnly cookie.</summary>
 public sealed record AuthResult(string AccessToken, int ExpiresInSeconds, string RefreshToken, DateTime RefreshTokenExpiresAt, UserDto User);

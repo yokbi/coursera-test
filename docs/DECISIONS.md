@@ -63,6 +63,25 @@ One line per decision: context → choice → rationale.
 - Playwright browsers → environment pre-installs Chromium at `/opt/pw-browsers/chromium`; config honors `PLAYWRIGHT_CHROMIUM_PATH` to avoid re-downloading. Without the variable, Playwright uses its default download.
 - Vitest 4 quirk → a `beforeEach` mock reset combined with a rejecting mock consumed inside a React component is misreported as an unhandled error; HabitCard tests install per-test implementations instead of resetting (documented in the test file).
 
+## Phase 7 — CI
+
+- CI runner → GitHub Actions, three parallel jobs (backend / frontend / e2e) → matches the three documented test commands; `main` is protected so every change now lands with a green signal.
+- Integration tests in CI → Testcontainers against the runner's own Docker daemon (no service container); the E2E job instead uses a PostgreSQL **service container** because the API process needs a fixed `localhost:5432` matching `appsettings.Development.json`.
+- Coverage enforcement → a script merges both cobertura reports (best hit count per line) and fails under 80% on Domain + Application → unit and integration runs complement rather than overwrite each other.
+
+## Phase 8 — Google OAuth
+
+- Flow → server-side authorization code + **PKCE**, secret never reaches the browser → standard for confidential clients; PKCE also blocks code interception.
+- OAuth CSRF → `state` stored in a short-lived `ht_oauth` cookie with **SameSite=Lax**, compared in constant time on callback → Strict would not survive Google's cross-site redirect back to the callback, so Lax is required here (unlike the refresh cookie, which stays Strict).
+- Provider abstraction → `IExternalAuthClient` with a real Google implementation and a fake in tests → the whole redirect/callback/link flow is covered without real credentials.
+- ID token → claims read directly from Google's token-endpoint response over TLS, without a second signature verification → per Google's guidance for the server-side flow, where the channel itself authenticates the issuer.
+- Account matching → provider `sub` first, then **verified** email → links an existing password account instead of duplicating it; an unverified provider email is rejected outright since it could belong to someone else.
+- Passwordless accounts → `PasswordHash` is now nullable; password login fails generically for them, `change-password` sets the first password without demanding an old one (the caller already holds a valid access token), and account deletion skips the password check.
+- Deletion → clears `GoogleSubject` so the same Google identity can register again → without this the unique index would permanently block re-registration.
+- Post-callback landing → redirects to the public `/giris/google` page rather than the target route → the route guard keys off a marker cookie only the frontend can set; that page exchanges the refresh cookie first, then forwards. Also avoids depending on cookie-domain sharing between the app and API hosts in production.
+- Open redirect → `returnPath` accepted only as a relative same-origin path, enforced on both the backend and the landing page.
+- Google button visibility → `GET /auth/google/available` reports whether credentials are configured; the button renders only when true → no dead button on servers without Google set up.
+
 ## Future ideas (explicitly out of scope, not built)
 
 - Push/email notifications, social features, OAuth login, admin panel, analytics, mobile app.

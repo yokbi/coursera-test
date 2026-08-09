@@ -194,6 +194,24 @@ export const authApi = {
     return request<UserDto>("/api/v1/me");
   },
 
+  /** Whether this server has Google credentials configured. */
+  async googleAvailable(): Promise<boolean> {
+    try {
+      const result = await request<{ available: boolean }>("/api/v1/auth/google/available", {
+        skipAuthRetry: true,
+      });
+      return result.available;
+    } catch {
+      return false;
+    }
+  },
+
+  /** Full-page navigation: the backend owns the OAuth redirect dance. */
+  startGoogleSignIn(returnPath = "/"): void {
+    window.location.href =
+      `${API_URL}/api/v1/auth/google/start?returnPath=${encodeURIComponent(returnPath)}`;
+  },
+
   updateTimeZone(timeZone: string): Promise<UserDto> {
     return request<UserDto>("/api/v1/me", { method: "PUT", body: { timeZone } });
   },

@@ -7,13 +7,21 @@ import { ApiError, authApi } from "@/lib/api";
 import { fieldErrors, loginSchema } from "@/lib/habit-schema";
 import { tr } from "@/lib/i18n/tr";
 import { Field, FormError, inputClass, primaryButtonClass } from "@/components/ui";
+import { GoogleSignInButton } from "@/components/GoogleSignInButton";
 
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [serverError, setServerError] = useState<string | null>(null);
+  // The backend sends ?hata=google here when consent is declined or the flow breaks.
+  const [serverError, setServerError] = useState<string | null>(
+    () =>
+      typeof window !== "undefined" &&
+      new URLSearchParams(window.location.search).get("hata") === "google"
+        ? tr.auth.googleError
+        : null,
+  );
   const [submitting, setSubmitting] = useState(false);
 
   async function onSubmit(event: React.FormEvent) {
@@ -72,6 +80,7 @@ export default function LoginPage() {
           {submitting ? tr.common.loading : tr.auth.loginButton}
         </button>
       </form>
+      <GoogleSignInButton />
       <p className="text-sm text-slate-600 dark:text-slate-400">
         {tr.auth.noAccount}{" "}
         <Link href="/kayit" className="font-medium text-sky-600 hover:underline">
