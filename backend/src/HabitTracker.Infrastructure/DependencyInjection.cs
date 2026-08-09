@@ -1,5 +1,6 @@
 using HabitTracker.Application.Auth;
 using HabitTracker.Application.Common.Interfaces;
+using HabitTracker.Application.Reminders;
 using HabitTracker.Infrastructure.Persistence;
 using HabitTracker.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
@@ -20,6 +21,22 @@ public static class DependencyInjection
         services.Configure<JwtOptions>(configuration.GetSection(JwtOptions.SectionName));
         services.Configure<GoogleOAuthOptions>(configuration.GetSection(GoogleOAuthOptions.SectionName));
         services.AddHttpClient<IExternalAuthClient, GoogleOAuthClient>();
+        services.Configure<EmailOptions>(configuration.GetSection(EmailOptions.SectionName));
+        services.Configure<ReminderSchedulerOptions>(configuration.GetSection(ReminderSchedulerOptions.SectionName));
+        services.AddSingleton<IUnsubscribeTokenService, UnsubscribeTokenService>();
+
+        // Without SMTP settings the app still runs; reminders are logged, not sent.
+        var email = configuration.GetSection(EmailOptions.SectionName).Get<EmailOptions>() ?? new EmailOptions();
+        if (email.IsSmtpConfigured)
+        {
+            services.AddSingleton<IEmailSender, SmtpEmailSender>();
+        }
+        else
+        {
+            services.AddSingleton<IEmailSender, LoggingEmailSender>();
+        }
+
+        services.AddHostedService<ReminderBackgroundService>();
         services.AddSingleton<IClock, SystemClock>();
         services.AddSingleton<IPasswordHasherService, PasswordHasherService>();
         services.AddSingleton<IJwtTokenGenerator, JwtTokenGenerator>();

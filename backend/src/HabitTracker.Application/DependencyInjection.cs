@@ -16,6 +16,7 @@ public static class DependencyInjection
         services.AddScoped<ICheckInService, CheckInService>();
         services.AddScoped<IDashboardService, DashboardService>();
         services.AddScoped<IHabitStatsService, HabitStatsService>();
+        services.AddScoped<Reminders.IReminderService, Reminders.ReminderService>();
         return services;
     }
 }

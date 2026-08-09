@@ -215,6 +215,13 @@ export const authApi = {
   updateTimeZone(timeZone: string): Promise<UserDto> {
     return request<UserDto>("/api/v1/me", { method: "PUT", body: { timeZone } });
   },
+
+  updateReminders(enabled: boolean, hour: number): Promise<UserDto> {
+    return request<UserDto>("/api/v1/reminders/settings", {
+      method: "PUT",
+      body: { enabled, hour },
+    });
+  },
 };
 
 // --- Habits ---

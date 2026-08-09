@@ -124,6 +124,45 @@ The redirect URI must match an authorized redirect URI in the Google Cloud conso
 
 **200** updated user. **400** unknown IANA id.
 
+## Reminder emails
+
+Opt-in daily reminder mail, sent at an hour the user picks in their own timezone, listing only what is still pending that day. Nothing is sent when everything is done.
+
+### PUT /api/v1/reminders/settings (auth)
+
+```json
+{ "enabled": true, "hour": 20 }
+```
+
+`hour` is 0–23 in the user's timezone. **200** returns the updated user (`remindersEnabled`, `reminderHour`). **400** for an hour outside the range.
+
+Turning reminders off also clears the "already sent today" marker, so re-enabling mid-day works immediately.
+
+### GET /api/v1/reminders/unsubscribe?token=… (public)
+
+The link embedded in every reminder mail. The token is an HMAC-signed, purpose-tagged value that can **only** disable reminders — it grants no other access and needs no session.
+
+**200** `text/html` confirmation, **400** for a missing, malformed or tampered token.
+
+### Delivery rules
+
+- One mail per local day, at or after the chosen hour; a scheduler outage still delivers later the same local day.
+- The send marker is written only after a successful send, so transport failures retry.
+- Weekly-quota habits are judged by the week's progress, not by a single day.
+
+### Configuration
+
+```bash
+Reminders__Enabled=true              # scheduler is off by default
+Reminders__PollIntervalMinutes=5
+Email__ApiBaseUrl=https://api.example.com   # unsubscribe links point here
+Email__FromAddress=hatirlatma@example.com
+Email__SmtpHost=smtp.example.com     # unset -> mail is logged, not sent
+Email__SmtpPort=587
+Email__SmtpUser=…
+Email__SmtpPassword=…
+```
+
 ## Habits
 
 Habit object:

@@ -82,6 +82,21 @@ One line per decision: context → choice → rationale.
 - Open redirect → `returnPath` accepted only as a relative same-origin path, enforced on both the backend and the landing page.
 - Google button visibility → `GET /auth/google/available` reports whether credentials are configured; the button renders only when true → no dead button on servers without Google set up.
 
+## Phase 9 — E-posta hatırlatmaları
+
+- Opt-in, never opt-out → `RemindersEnabled` defaults to false; a fresh account is never mailed.
+- Scheduling rules live in a pure `ReminderPlanner` (Domain) → every timezone/window edge case is unit tested without a database or a mail server.
+- Idempotency → `LastReminderSentOn` stores the **local** day and is written only after a successful send → repeated scheduler ticks cannot double-send, and a transport failure retries on the next tick.
+- Late delivery → a reminder still goes out later the same local day after a scheduler outage; the local day boundary stops it leaking into the night.
+- Nothing pending → no mail. A user who finished everything is not nagged.
+- Weekly-quota habits → judged by the week's progress, not by "today", so a 2x/week habit does not nag daily.
+- Scheduler → `BackgroundService` with a `PeriodicTimer`, default 5-minute poll, **disabled by default** (`Reminders:Enabled`) so tests and one-off runs never send mail; users pick an hour, so minute-level precision is unnecessary.
+- Transport → `IEmailSender` with `SmtpEmailSender` (System.Net.Mail, no extra dependency) when `Email:SmtpHost` is set, otherwise a `LoggingEmailSender` that records only the subject and recipient **domain** → development works with no mail server and no PII in logs.
+- Unsubscribe → HMAC-signed, purpose-tagged token in the mail; the link needs no session and can only ever disable reminders → standard for transactional mail, and harmless if a mail archive leaks.
+- Mail HTML → escapes only `& < > " '` rather than `WebUtility.HtmlEncode` → keeps Turkish letters and emoji readable under the declared UTF-8 charset while still blocking markup injection from habit names.
+- Turkish suffixes → streak phrases are built as whole words (`günlük` / `haftalık`) rather than concatenating a suffix → vowel harmony makes a single shared suffix wrong; a unit test pinned this after the first attempt produced "günlık".
+- Reminder integration tests assert per-recipient, not on the sweep's batch count → the sweep is global and the test database is shared across the collection, so batch counts are not isolated.
+
 ## Future ideas (explicitly out of scope, not built)
 
 - Push/email notifications, social features, OAuth login, admin panel, analytics, mobile app.

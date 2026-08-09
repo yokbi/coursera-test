@@ -303,9 +303,7 @@ public class AuthService(
         return new AuthResult(accessToken, expiresIn, rawRefreshToken, refreshExpiry, ToDto(user));
     }
 
-    private static UserDto ToDto(User user) => new(
-        user.Id, user.Email, user.TimeZone, user.CreatedAt,
-        user.PasswordHash is not null, user.GoogleSubject is not null);
+    private static UserDto ToDto(User user) => UserMapper.ToDto(user);
 
     private static string NormalizeEmail(string email) => email.Trim().ToLowerInvariant();
 
