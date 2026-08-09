@@ -16,6 +16,13 @@ public class User : BaseEntity
     public int FailedLoginCount { get; set; }
     public DateTime? LockoutEndUtc { get; set; }
 
+    /// <summary>Opt-in: no reminder mail is ever sent unless the user turns this on.</summary>
+    public bool RemindersEnabled { get; set; }
+    /// <summary>Hour of the day (0-23) in the user's own timezone to send the reminder.</summary>
+    public int ReminderHour { get; set; } = 20;
+    /// <summary>Local day of the last reminder; makes repeated scheduler ticks idempotent.</summary>
+    public DateOnly? LastReminderSentOn { get; set; }
+
     public ICollection<Habit> Habits { get; set; } = new List<Habit>();
     public ICollection<RefreshToken> RefreshTokens { get; set; } = new List<RefreshToken>();
 }

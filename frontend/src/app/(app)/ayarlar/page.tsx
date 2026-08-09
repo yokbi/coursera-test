@@ -4,6 +4,7 @@ import { useState } from "react";
 import { ApiError, authApi } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { passwordSchema } from "@/lib/habit-schema";
+import { ReminderSettings } from "@/components/ReminderSettings";
 import { tr } from "@/lib/i18n/tr";
 import {
   Field,
@@ -235,6 +236,13 @@ export default function SettingsPage() {
           <p className="text-sm text-slate-600 dark:text-slate-400">🔗 {tr.settings.googleLinked}</p>
         ) : null}
         <TimezoneSection />
+      </section>
+
+      <section aria-labelledby="reminders-title" className="flex flex-col gap-3">
+        <h3 id="reminders-title" className="text-lg font-semibold">
+          {tr.settings.reminders}
+        </h3>
+        <ReminderSettings />
       </section>
 
       <section aria-labelledby="password-title" className="flex flex-col gap-3">

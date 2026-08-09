@@ -27,6 +27,9 @@ export interface UserDto {
   /** False for accounts created through Google that never set a password. */
   hasPassword: boolean;
   linkedGoogle: boolean;
+  remindersEnabled: boolean;
+  /** Hour of day (0-23) in the user's own timezone. */
+  reminderHour: number;
 }
 
 export interface AuthResponse {

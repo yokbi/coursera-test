@@ -74,6 +74,19 @@ OWASP Top 10 (2021).
   reused so their existence is not distinguishable.
 - Deleting an account releases its Google link, so no orphaned identity mapping remains.
 
+## Reminder emails
+
+- Opt-in only; a new account is never mailed until the user enables reminders.
+- The unsubscribe token is an HMAC-SHA256 over the user id, **purpose-tagged**
+  (`unsubscribe:`) so a signature can never be replayed as another token type, and
+  compared with `FixedTimeEquals`. Bearing it can only disable reminders.
+- Mail bodies escape `& < > " '` in habit names, so a habit called
+  `<script>…</script>` cannot inject markup into the message.
+- The development sender logs only the subject and the recipient's **domain** —
+  never the address, the body, or the unsubscribe link.
+- A failing recipient (unknown timezone, transport error) is logged by user id and
+  skipped; it never aborts the batch or leaks the address into logs.
+
 ## CSRF
 
 - The refresh cookie is SameSite=Strict, and `refresh`/`logout` additionally require

@@ -18,7 +18,9 @@ public sealed record UserDto(
     string TimeZone,
     DateTime CreatedAt,
     bool HasPassword,
-    bool LinkedGoogle);
+    bool LinkedGoogle,
+    bool RemindersEnabled,
+    int ReminderHour);
 
 /// <summary>RefreshToken is the raw opaque token; the API layer moves it into an httpOnly cookie.</summary>
 public sealed record AuthResult(string AccessToken, int ExpiresInSeconds, string RefreshToken, DateTime RefreshTokenExpiresAt, UserDto User);

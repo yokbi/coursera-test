@@ -124,6 +124,12 @@ export const tr = {
     timezone: "Saat dilimi",
     timezoneHelp: "Günlük sınırlar bu saat dilimine göre hesaplanır.",
     timezoneSaved: "Saat dilimi güncellendi.",
+    reminders: "Hatırlatmalar",
+    remindersEnabled: "Günlük hatırlatma e-postası gönder",
+    remindersHelp:
+      "Seçtiğin saatte, o gün tamamlanmayan alışkanlıkların için e-posta alırsın. Her şeyi tamamladıysan e-posta gönderilmez.",
+    reminderHour: "Hatırlatma saati",
+    remindersSaved: "Hatırlatma ayarların güncellendi.",
     theme: "Tema",
     themeLight: "Açık",
     themeDark: "Koyu",
