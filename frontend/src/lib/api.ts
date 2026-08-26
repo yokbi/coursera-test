@@ -1,4 +1,6 @@
 import type {
+  AdminMetricsDto,
+  AdminUserDto,
   AuthResponse,
   CheckInDto,
   CheckInResultDto,
@@ -221,6 +223,28 @@ export const authApi = {
       method: "PUT",
       body: { enabled, hour },
     });
+  },
+};
+
+// --- Admin ---
+
+export const adminApi = {
+  listUsers(search: string, page = 1, pageSize = 25): Promise<PagedResult<AdminUserDto>> {
+    const query = new URLSearchParams({ page: String(page), pageSize: String(pageSize) });
+    if (search) query.set("search", search);
+    return request<PagedResult<AdminUserDto>>(`/api/v1/admin/users?${query}`);
+  },
+
+  suspend(userId: string): Promise<AdminUserDto> {
+    return request<AdminUserDto>(`/api/v1/admin/users/${userId}/suspend`, { method: "POST" });
+  },
+
+  unsuspend(userId: string): Promise<AdminUserDto> {
+    return request<AdminUserDto>(`/api/v1/admin/users/${userId}/unsuspend`, { method: "POST" });
+  },
+
+  metrics(): Promise<AdminMetricsDto> {
+    return request<AdminMetricsDto>("/api/v1/admin/metrics");
   },
 };
 

@@ -43,6 +43,9 @@ builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
+        // Keep short claim names as issued; the default mapping rewrites "role" to a
+        // long WS-Federation URI, which then no longer matches RoleClaimType below.
+        options.MapInboundClaims = false;
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,
@@ -52,7 +55,8 @@ builder.Services
             ValidateIssuerSigningKey = true,
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(signingKey)),
             ValidateLifetime = true,
-            ClockSkew = TimeSpan.FromSeconds(30)
+            ClockSkew = TimeSpan.FromSeconds(30),
+            RoleClaimType = HabitTracker.Infrastructure.Services.JwtTokenGenerator.RoleClaimType
         };
     });
 builder.Services.AddAuthorization();
@@ -97,6 +101,40 @@ if (app.Configuration.GetValue("Database:MigrateOnStartup", false))
     using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     db.Database.Migrate();
+}
+
+// `dotnet run -- promote-admin <email>` is the only way to mint the first admin:
+// no bootstrap config, no magic email, and it works in every environment.
+if (args.Contains("promote-admin"))
+{
+    var index = Array.IndexOf(args, "promote-admin");
+    var targetEmail = index >= 0 && index + 1 < args.Length ? args[index + 1] : null;
+    if (string.IsNullOrWhiteSpace(targetEmail))
+    {
+        Log.Error("Usage: dotnet run -- promote-admin <email>");
+        Environment.ExitCode = 1;
+        return;
+    }
+
+    using (var scope = app.Services.CreateScope())
+    {
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        db.Database.Migrate();
+        var normalized = targetEmail.Trim().ToLowerInvariant();
+        var user = db.Users.FirstOrDefault(u => u.Email == normalized && !u.IsDeleted);
+        if (user is null)
+        {
+            Log.Error("No active account found for that address.");
+            Environment.ExitCode = 1;
+            return;
+        }
+
+        user.Role = HabitTracker.Domain.Enums.UserRole.Admin;
+        db.SaveChanges();
+        Log.Information("Promoted {UserId} to Admin.", user.Id);
+    }
+
+    return;
 }
 
 if (args.Contains("seed"))

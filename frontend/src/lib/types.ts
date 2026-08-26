@@ -30,6 +30,32 @@ export interface UserDto {
   remindersEnabled: boolean;
   /** Hour of day (0-23) in the user's own timezone. */
   reminderHour: number;
+  isAdmin: boolean;
+}
+
+export interface AdminUserDto {
+  id: string;
+  email: string;
+  role: "user" | "admin";
+  timeZone: string;
+  isSuspended: boolean;
+  suspendedAt: string | null;
+  isDeleted: boolean;
+  remindersEnabled: boolean;
+  habitCount: number;
+  createdAt: string;
+}
+
+export interface AdminMetricsDto {
+  totalUsers: number;
+  activeUsers: number;
+  suspendedUsers: number;
+  deletedUsers: number;
+  usersWithRemindersOn: number;
+  totalHabits: number;
+  archivedHabits: number;
+  checkInsLast7Days: number;
+  newUsersLast30Days: number;
 }
 
 export interface AuthResponse {

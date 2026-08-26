@@ -97,6 +97,18 @@ One line per decision: context → choice → rationale.
 - Turkish suffixes → streak phrases are built as whole words (`günlük` / `haftalık`) rather than concatenating a suffix → vowel harmony makes a single shared suffix wrong; a unit test pinned this after the first attempt produced "günlık".
 - Reminder integration tests assert per-recipient, not on the sweep's batch count → the sweep is global and the test database is shared across the collection, so batch counts are not isolated.
 
+## Phase 10 — Admin paneli
+
+- Authorization model → a `Role` enum on User (`User` / `Admin`) carried as a `role` claim in the JWT → `[Authorize(Roles = "Admin")]` gates every admin route with no extra database round-trip per request.
+- `JwtBearerOptions.MapInboundClaims = false` → the default mapping rewrites the short `role` claim to a long WS-Federation URI, which then no longer matches `RoleClaimType`; every admin request 403'd until this was turned off (caught by the integration tests).
+- Role changes take effect on the **next token**, not immediately → an access token lives 15 minutes; promoting a user therefore requires them to sign in again, which the tests pin explicitly.
+- Admins get **no** window into other users' habits → the ordinary owner-scoped endpoints are unchanged, so an admin still gets 404 on someone else's habit. The panel manages accounts, not content.
+- Suspension over deletion → `SuspendedAt` blocks sign-in without destroying data; suspending also revokes live refresh tokens so sessions die immediately rather than at expiry.
+- Suspension is reported as **403 only after the password verifies** → a wrong password still returns the same generic 401, so suspension never becomes an enumeration oracle.
+- Admins cannot suspend themselves or each other → prevents locking the panel out; unsuspending is always available.
+- First admin → `dotnet run -- promote-admin <email>` rather than a bootstrap config value or a magic email → explicit, auditable, works in every environment. The dev seeder's demo account is also an admin so the panel is reachable locally.
+- Admin user DTO excludes password hashes, provider subjects and refresh tokens → an admin manages accounts, not secrets; a test asserts the payload never contains them.
+
 ## Future ideas (explicitly out of scope, not built)
 
 - Push/email notifications, social features, OAuth login, admin panel, analytics, mobile app.

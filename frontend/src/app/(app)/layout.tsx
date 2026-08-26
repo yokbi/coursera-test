@@ -26,7 +26,7 @@ function NavLink({ href, label }: { href: string; label: string }) {
 }
 
 function AppShell({ children }: { children: React.ReactNode }) {
-  const { status, logout } = useAuth();
+  const { status, logout, user } = useAuth();
 
   if (status === "loading") {
     return (
@@ -53,6 +53,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
             <NavLink href="/" label={tr.nav.dashboard} />
             <NavLink href="/aliskanliklar" label={tr.nav.habits} />
             <NavLink href="/ayarlar" label={tr.nav.settings} />
+            {user?.isAdmin ? <NavLink href="/yonetim" label={tr.nav.admin} /> : null}
             <ThemeToggle />
             <button
               type="button"

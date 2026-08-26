@@ -35,6 +35,7 @@ public class AuthService(
     private static readonly TimeSpan LockoutDuration = TimeSpan.FromMinutes(15);
     private static readonly TimeSpan RefreshTokenLifetime = TimeSpan.FromDays(30);
     private const string InvalidCredentialsMessage = "Invalid email or password.";
+    private const string SuspendedMessage = "This account has been suspended.";
 
     public async Task<AuthResult> RegisterAsync(RegisterRequest request, CancellationToken ct = default)
     {
@@ -95,6 +96,15 @@ public class AuthService(
 
         user.FailedLoginCount = 0;
         user.LockoutEndUtc = null;
+
+        // Checked only after the password verified: a wrong password still returns
+        // the same generic 401, so suspension is not an enumeration oracle.
+        if (user.IsSuspended)
+        {
+            await db.SaveChangesAsync(ct);
+            throw new ForbiddenAppException(SuspendedMessage);
+        }
+
         return await IssueTokensAsync(user, ct);
     }
 
@@ -135,6 +145,11 @@ public class AuthService(
             user.Email = email;
         }
 
+        if (user.IsSuspended)
+        {
+            throw new ForbiddenAppException(SuspendedMessage);
+        }
+
         // A successful external sign-in clears any password-brute-force lockout.
         user.FailedLoginCount = 0;
         user.LockoutEndUtc = null;
@@ -154,7 +169,7 @@ public class AuthService(
             .Include(t => t.User)
             .FirstOrDefaultAsync(t => t.TokenHash == hash, ct);
 
-        if (stored is null || stored.User is null || stored.User.IsDeleted)
+        if (stored is null || stored.User is null || stored.User.IsDeleted || stored.User.IsSuspended)
         {
             throw new UnauthorizedAppException("Invalid refresh token.");
         }
@@ -267,7 +282,12 @@ public class AuthService(
     private async Task<User> GetActiveUserAsync(Guid userId, CancellationToken ct)
     {
         var user = await db.Users.FirstOrDefaultAsync(u => u.Id == userId && !u.IsDeleted, ct);
-        return user ?? throw new UnauthorizedAppException("Account is no longer active.");
+        if (user is null)
+        {
+            throw new UnauthorizedAppException("Account is no longer active.");
+        }
+
+        return user.IsSuspended ? throw new ForbiddenAppException(SuspendedMessage) : user;
     }
 
     private async Task RevokeAllRefreshTokensAsync(Guid userId, CancellationToken ct)

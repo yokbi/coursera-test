@@ -1,4 +1,5 @@
 using HabitTracker.Domain.Common;
+using HabitTracker.Domain.Enums;
 
 namespace HabitTracker.Domain.Entities;
 
@@ -11,6 +12,10 @@ public class User : BaseEntity
     public string? GoogleSubject { get; set; }
     /// <summary>IANA timezone id used to compute the user's local day boundaries.</summary>
     public string TimeZone { get; set; } = "Europe/Istanbul";
+    public UserRole Role { get; set; } = UserRole.User;
+    /// <summary>Set by an admin; blocks sign-in without destroying any data.</summary>
+    public DateTime? SuspendedAt { get; set; }
+    public bool IsSuspended => SuspendedAt is not null;
     public bool IsDeleted { get; set; }
     public DateTime? DeletedAt { get; set; }
     public int FailedLoginCount { get; set; }
