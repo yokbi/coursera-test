@@ -14,5 +14,6 @@ public static class UserMapper
         user.GoogleSubject is not null,
         user.RemindersEnabled,
         user.ReminderHour,
-        user.Role == Domain.Enums.UserRole.Admin);
+        user.Role == Domain.Enums.UserRole.Admin,
+        user.ShareStreaksWithFriends);
 }

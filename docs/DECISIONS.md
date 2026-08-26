@@ -109,6 +109,20 @@ One line per decision: context → choice → rationale.
 - First admin → `dotnet run -- promote-admin <email>` rather than a bootstrap config value or a magic email → explicit, auditable, works in every environment. The dev seeder's demo account is also an admin so the panel is reachable locally.
 - Admin user DTO excludes password hashes, provider subjects and refresh tokens → an admin manages accounts, not secrets; a test asserts the payload never contains them.
 
+## Phase 11 — Sosyal özellikler (arkadaşlık + seri paylaşımı)
+
+- Split from "shared habit groups" → friendships and consent-based sharing ship first as a coherent unit; groups build on top and land separately rather than in one oversized change.
+- One row per pair, keyed by who asked → the reverse direction is found by matching either column, never by a second row; a unique index on `(requester, addressee)` plus an explicit reverse lookup keeps it single.
+- Sending a request to an unknown address returns **204, exactly like a real one** → reporting "no such user" would make this an account-enumeration oracle, which the rest of the API deliberately avoids. The UI copy is vague to match.
+- Mutual requests auto-link → if B asks A while A→B is pending, that is consent from both sides; no accept step needed.
+- A declined request reopens the same row rather than blocking forever → refusal is not permanent, and no duplicate rows accumulate.
+- Only the **addressee** can accept or decline → otherwise a requester could unilaterally friend anyone. Pinned by a test.
+- **Sharing is opt-in and defaults to off.** A friend without consent exposes nothing but an email address; every stat field is null rather than zero, so "no data" is never confused with "no progress".
+- Sharing grants a **summary, not access** → friends see best active streak, active habit count and today's progress; the owner-scoped habit endpoints stay closed and still return 404 for a friend. Pinned by a test.
+- Revoking consent takes effect immediately, and removing a friendship deletes the row outright so neither side keeps visibility for even a moment.
+- Account deletion removes its friendship rows → sharing must not outlive the account, and the pairs are freed for reuse.
+- Friendship FKs use `Restrict`, not `Cascade` → two cascade paths into the same table are not allowed by SQL Server/Postgres semantics EF enforces; cleanup is explicit instead.
+
 ## Future ideas (explicitly out of scope, not built)
 
 - Push/email notifications, social features, OAuth login, admin panel, analytics, mobile app.

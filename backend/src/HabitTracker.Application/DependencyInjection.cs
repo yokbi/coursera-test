@@ -18,6 +18,7 @@ public static class DependencyInjection
         services.AddScoped<IHabitStatsService, HabitStatsService>();
         services.AddScoped<Reminders.IReminderService, Reminders.ReminderService>();
         services.AddScoped<Admin.IAdminService, Admin.AdminService>();
+        services.AddScoped<Friends.IFriendService, Friends.FriendService>();
         return services;
     }
 }

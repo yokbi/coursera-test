@@ -8,7 +8,7 @@ public sealed record AuthResponseDto(string AccessToken, int ExpiresInSeconds, U
 
 public sealed record UserInfoDto(
     Guid Id, string Email, string TimeZone, DateTime CreatedAt,
-    bool HasPassword, bool LinkedGoogle, bool RemindersEnabled, int ReminderHour, bool IsAdmin);
+    bool HasPassword, bool LinkedGoogle, bool RemindersEnabled, int ReminderHour, bool IsAdmin, bool ShareStreaksWithFriends);
 
 public static class ApiClientHelpers
 {

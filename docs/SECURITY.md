@@ -103,6 +103,21 @@ OWASP Top 10 (2021).
 - The first admin is minted by an explicit CLI command, never by configuration that
   could silently grant privileges.
 
+## Social features
+
+- **Consent-first.** `ShareStreaksWithFriends` defaults to false. A friend who has not
+  opted in exposes nothing but the email address the requester already knew; every
+  stat is returned as null, not zero.
+- Sharing grants a **summary, not access**. Friends never reach the owner-scoped habit
+  endpoints — those still return 404 for a friend, verified by a test.
+- Friend requests to an unregistered address return the same 204 as a real one, so the
+  endpoint cannot be used to enumerate which emails have accounts.
+- Only the addressee can accept or decline a request; a requester accepting their own
+  would let anyone friend anyone unilaterally.
+- Revoking consent and removing a friendship both take effect on the next read, with no
+  cached or lingering visibility.
+- Deleting an account removes its friendship rows and clears its sharing flag.
+
 ## CSRF
 
 - The refresh cookie is SameSite=Strict, and `refresh`/`logout` additionally require

@@ -52,6 +52,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
           <nav aria-label={tr.app.name} className="flex items-center gap-1">
             <NavLink href="/" label={tr.nav.dashboard} />
             <NavLink href="/aliskanliklar" label={tr.nav.habits} />
+            <NavLink href="/arkadaslar" label={tr.nav.friends} />
             <NavLink href="/ayarlar" label={tr.nav.settings} />
             {user?.isAdmin ? <NavLink href="/yonetim" label={tr.nav.admin} /> : null}
             <ThemeToggle />

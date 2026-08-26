@@ -31,6 +31,33 @@ export interface UserDto {
   /** Hour of day (0-23) in the user's own timezone. */
   reminderHour: number;
   isAdmin: boolean;
+  shareStreaksWithFriends: boolean;
+}
+
+export interface FriendDto {
+  userId: string;
+  email: string;
+  sharingEnabled: boolean;
+  /** All stats are null unless that friend turned sharing on. */
+  activeHabits: number | null;
+  bestStreak: number | null;
+  bestStreakUnit: "days" | "weeks" | null;
+  bestStreakHabitName: string | null;
+  completedToday: number | null;
+  scheduledToday: number | null;
+  friendsSince: string;
+}
+
+export interface FriendRequestDto {
+  requestId: string;
+  userId: string;
+  email: string;
+  createdAt: string;
+}
+
+export interface FriendRequestsDto {
+  incoming: FriendRequestDto[];
+  outgoing: FriendRequestDto[];
 }
 
 export interface AdminUserDto {

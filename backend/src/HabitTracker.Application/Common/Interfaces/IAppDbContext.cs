@@ -9,5 +9,6 @@ public interface IAppDbContext
     DbSet<Habit> Habits { get; }
     DbSet<CheckIn> CheckIns { get; }
     DbSet<RefreshToken> RefreshTokens { get; }
+    DbSet<Friendship> Friendships { get; }
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }
