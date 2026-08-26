@@ -20,6 +20,9 @@ public class JwtOptions
 
 public class JwtTokenGenerator(IOptions<JwtOptions> options, IClock clock) : IJwtTokenGenerator
 {
+    /// <summary>Short claim name; the API maps it via TokenValidationParameters.RoleClaimType.</summary>
+    public const string RoleClaimType = "role";
+
     private readonly JwtOptions _options = options.Value;
 
     public (string Token, int ExpiresInSeconds) GenerateAccessToken(User user)
@@ -40,7 +43,9 @@ public class JwtTokenGenerator(IOptions<JwtOptions> options, IClock clock) : IJw
             {
                 new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
                 new Claim(JwtRegisteredClaimNames.Email, user.Email),
-                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+                // Role travels in the token so [Authorize(Roles = ...)] needs no DB hit.
+                new Claim(RoleClaimType, user.Role.ToString())
             })
         };
 

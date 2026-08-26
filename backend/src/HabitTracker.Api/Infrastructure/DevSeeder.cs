@@ -26,7 +26,9 @@ public static class DevSeeder
         {
             Email = DemoEmail,
             PasswordHash = hasher.Hash(DemoPassword),
-            TimeZone = "Europe/Istanbul"
+            TimeZone = "Europe/Istanbul",
+            // The demo account doubles as the admin so the panel is reachable in dev.
+            Role = UserRole.Admin
         };
         db.Users.Add(user);
 

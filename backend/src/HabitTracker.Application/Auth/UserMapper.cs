@@ -13,5 +13,6 @@ public static class UserMapper
         user.PasswordHash is not null,
         user.GoogleSubject is not null,
         user.RemindersEnabled,
-        user.ReminderHour);
+        user.ReminderHour,
+        user.Role == Domain.Enums.UserRole.Admin);
 }

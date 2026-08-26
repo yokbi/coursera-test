@@ -87,6 +87,22 @@ OWASP Top 10 (2021).
 - A failing recipient (unknown timezone, transport error) is logged by user id and
   skipped; it never aborts the batch or leaks the address into logs.
 
+## Admin panel
+
+- Every `/api/v1/admin` route requires the `Admin` role, carried as a signed JWT
+  claim. Ordinary users receive **403**, anonymous callers **401**.
+- Admin status widens nothing else: the owner-scoped habit endpoints are unchanged,
+  so an admin still gets 404 for another user's habit. Verified by a test.
+- The admin user projection excludes password hashes, Google subjects and refresh
+  tokens; a test asserts the response body never contains them.
+- Suspension revokes live refresh tokens immediately, so a suspended session cannot
+  outlive the current access token (15 minutes at most).
+- Suspension is only revealed **after** the password verifies — a wrong password
+  still returns the generic 401, so it is not an account-enumeration oracle.
+- Admins cannot suspend themselves or other admins, so the panel cannot be locked out.
+- The first admin is minted by an explicit CLI command, never by configuration that
+  could silently grant privileges.
+
 ## CSRF
 
 - The refresh cookie is SameSite=Strict, and `refresh`/`logout` additionally require

@@ -289,6 +289,64 @@ Habits scheduled for the caller's current local day:
 
 Streak rules: schedule-aware (unscheduled days never break a streak); the in-progress day/week doesn't break a streak until it is missed; `timesPerWeek` streaks are counted in weeks.
 
+## Admin
+
+Every route below requires a JWT carrying `role: Admin`. Ordinary users get **403**, anonymous callers **401**. Admin status does **not** widen the habit endpoints — an admin still gets 404 for someone else's habit.
+
+The first admin is created from the command line:
+
+```bash
+dotnet run --project backend/src/HabitTracker.Api -- promote-admin kisi@example.com
+```
+
+Role lives in the access token, so a promoted user must sign in again before the panel opens.
+
+### GET /api/v1/admin/users?search=&includeDeleted=false&page=1&pageSize=25
+
+Offset pagination, `pageSize` ≤ 100. `search` matches the email address, case-insensitively.
+
+```json
+{
+  "items": [
+    {
+      "id": "guid",
+      "email": "kisi@example.com",
+      "role": "user",
+      "timeZone": "Europe/Istanbul",
+      "isSuspended": false,
+      "suspendedAt": null,
+      "isDeleted": false,
+      "remindersEnabled": true,
+      "habitCount": 5,
+      "createdAt": "2026-06-09T08:00:00Z"
+    }
+  ],
+  "page": 1, "pageSize": 25, "totalCount": 42
+}
+```
+
+Password hashes, Google subjects and refresh tokens are never included.
+
+### POST /api/v1/admin/users/{id}/suspend · /unsuspend
+
+Suspending blocks sign-in and **revokes the account's live refresh tokens**, so the session dies within the access token's remaining lifetime.
+
+- **200** updated admin user object
+- **404** unknown user
+- **422** suspending yourself, or suspending another admin
+
+A suspended user gets **403** on login (only once the password verifies — a wrong password still returns the generic 401) and on `/api/v1/me`.
+
+### GET /api/v1/admin/metrics
+
+```json
+{
+  "totalUsers": 128, "activeUsers": 120, "suspendedUsers": 3, "deletedUsers": 5,
+  "usersWithRemindersOn": 44, "totalHabits": 512, "archivedHabits": 61,
+  "checkInsLast7Days": 1840, "newUsersLast30Days": 19
+}
+```
+
 ## Health
 
 ### GET /health (public)

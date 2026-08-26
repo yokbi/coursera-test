@@ -6,6 +6,9 @@ public class NotFoundException(string message) : Exception(message);
 /// <summary>Maps to 401. Message is intentionally generic to prevent enumeration.</summary>
 public class UnauthorizedAppException(string message) : Exception(message);
 
+/// <summary>Maps to 403. The caller is authenticated but not allowed.</summary>
+public class ForbiddenAppException(string message) : Exception(message);
+
 /// <summary>Maps to 409.</summary>
 public class ConflictException(string message) : Exception(message);
 

@@ -27,6 +27,11 @@ public class AppExceptionHandler(IProblemDetailsService problemDetailsService, I
                 Status = StatusCodes.Status401Unauthorized,
                 Title = e.Message
             },
+            ForbiddenAppException e => new ProblemDetails
+            {
+                Status = StatusCodes.Status403Forbidden,
+                Title = e.Message
+            },
             NotFoundException e => new ProblemDetails
             {
                 Status = StatusCodes.Status404NotFound,

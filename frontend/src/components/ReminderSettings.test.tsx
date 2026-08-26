@@ -30,6 +30,7 @@ function makeUser(overrides: Partial<UserDto> = {}): UserDto {
     linkedGoogle: false,
     remindersEnabled: false,
     reminderHour: 20,
+    isAdmin: false,
     ...overrides,
   };
 }
