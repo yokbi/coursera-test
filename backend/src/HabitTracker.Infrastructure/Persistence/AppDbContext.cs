@@ -12,6 +12,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<CheckIn> CheckIns => Set<CheckIn>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<Friendship> Friendships => Set<Friendship>();
+    public DbSet<HabitGroup> HabitGroups => Set<HabitGroup>();
+    public DbSet<HabitGroupMember> HabitGroupMembers => Set<HabitGroupMember>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

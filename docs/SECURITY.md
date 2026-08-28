@@ -118,6 +118,22 @@ OWASP Top 10 (2021).
   cached or lingering visibility.
 - Deleting an account removes its friendship rows and clears its sharing flag.
 
+## Habit groups
+
+- A member can only link a habit they **own** — enforced on create, join and change.
+  Without it, a caller could attach someone else's habit to a group and read its
+  progress back.
+- Joining is the consent, and it is **narrower** than friend-list sharing: the two
+  flags are independent, so group progress never implies general streak sharing.
+- An outstanding invitation grants no visibility (403 on the detail endpoint); only
+  a joined member sees anyone's progress.
+- Only friends can be invited, so a group cannot be used to reach a stranger.
+- Only the owner may invite, remove members or delete the group; pending invitees are
+  visible only to the owner.
+- Group progress is a projection: fellow members still get 404 on the owner-scoped
+  habit endpoints, reads and writes alike.
+- Deleting an account removes its memberships and the groups it owns.
+
 ## CSRF
 
 - The refresh cookie is SameSite=Strict, and `refresh`/`logout` additionally require

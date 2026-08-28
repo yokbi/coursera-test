@@ -123,6 +123,19 @@ One line per decision: context → choice → rationale.
 - Account deletion removes its friendship rows → sharing must not outlive the account, and the pairs are freed for reuse.
 - Friendship FKs use `Restrict`, not `Cascade` → two cascade paths into the same table are not allowed by SQL Server/Postgres semantics EF enforces; cleanup is explicit instead.
 
+## Phase 12 — Ortak alışkanlık grupları
+
+- Each member links **their own** habit to the group → nobody's habit is handed over; the group only projects that one habit's progress. A member may only link a habit they own, checked on create, join and change (without it a caller could point a membership at someone else's habit and read its progress back).
+- Membership and invitation are one row (`Status = Invited | Joined`) → an invitation *is* a member who has not consented yet; no second table, and the unique `(group, user)` index prevents duplicates.
+- **Joining is the consent**, and it is independent of the friend-list sharing flag → two separate, narrower consent surfaces: a member can share group progress without opening their whole streak summary to all friends. Pinned by a test.
+- An outstanding invitation grants **no** view of the members (403) → being invited is not consent.
+- Only friends can be invited → a group must not become a way to push yourself into a stranger's app.
+- Only the owner invites, removes members, or deletes; the owner cannot leave (that would strand the group) and must delete it instead.
+- Pending invitees are visible only to the owner → members do not need to see who declined to answer.
+- Group progress is a projection, not access → the owner-scoped habit endpoints still return 404 for fellow members, including writes.
+- Account deletion removes memberships and owned groups → consent must not outlive the account.
+- Frontend: the route component unwraps `params` with `use()` and delegates to an exported `GroupDetailView({ groupId })` → `use(promise)` never resolves under jsdom + Testing Library (verified with a minimal probe), so the view is tested directly with a plain id instead of fighting the environment.
+
 ## Future ideas (explicitly out of scope, not built)
 
 - Push/email notifications, social features, OAuth login, admin panel, analytics, mobile app.

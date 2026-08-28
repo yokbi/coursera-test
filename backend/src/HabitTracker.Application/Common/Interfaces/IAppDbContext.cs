@@ -10,5 +10,7 @@ public interface IAppDbContext
     DbSet<CheckIn> CheckIns { get; }
     DbSet<RefreshToken> RefreshTokens { get; }
     DbSet<Friendship> Friendships { get; }
+    DbSet<HabitGroup> HabitGroups { get; }
+    DbSet<HabitGroupMember> HabitGroupMembers { get; }
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

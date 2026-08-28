@@ -53,6 +53,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
             <NavLink href="/" label={tr.nav.dashboard} />
             <NavLink href="/aliskanliklar" label={tr.nav.habits} />
             <NavLink href="/arkadaslar" label={tr.nav.friends} />
+            <NavLink href="/gruplar" label={tr.nav.groups} />
             <NavLink href="/ayarlar" label={tr.nav.settings} />
             {user?.isAdmin ? <NavLink href="/yonetim" label={tr.nav.admin} /> : null}
             <ThemeToggle />
