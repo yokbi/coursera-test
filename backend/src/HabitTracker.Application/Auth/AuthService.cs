@@ -254,6 +254,12 @@ public class AuthService(
         user.PasswordHash = "!deleted";
         // Release the Google link so the same Google account can register again.
         user.GoogleSubject = null;
+        // Sharing must not outlive the account, and the pairs are freed for reuse.
+        user.ShareStreaksWithFriends = false;
+        var friendships = await db.Friendships
+            .Where(f => f.RequesterId == userId || f.AddresseeId == userId)
+            .ToListAsync(ct);
+        db.Friendships.RemoveRange(friendships);
         await RevokeAllRefreshTokensAsync(userId, ct);
         await db.SaveChangesAsync(ct);
     }

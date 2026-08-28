@@ -43,6 +43,7 @@ function admin(isAdmin = true): UserDto {
     remindersEnabled: false,
     reminderHour: 20,
     isAdmin,
+    shareStreaksWithFriends: false,
   };
 }
 

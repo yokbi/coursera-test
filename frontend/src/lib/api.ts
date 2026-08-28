@@ -2,6 +2,8 @@ import type {
   AdminMetricsDto,
   AdminUserDto,
   AuthResponse,
+  FriendDto,
+  FriendRequestsDto,
   CheckInDto,
   CheckInResultDto,
   HabitDto,
@@ -223,6 +225,39 @@ export const authApi = {
       method: "PUT",
       body: { enabled, hour },
     });
+  },
+};
+
+// --- Friends ---
+
+export const friendsApi = {
+  list(): Promise<FriendDto[]> {
+    return request<FriendDto[]>("/api/v1/friends");
+  },
+
+  requests(): Promise<FriendRequestsDto> {
+    return request<FriendRequestsDto>("/api/v1/friends/requests");
+  },
+
+  /** Always succeeds, even for an address that has no account. */
+  sendRequest(email: string): Promise<void> {
+    return request<void>("/api/v1/friends/requests", { method: "POST", body: { email } });
+  },
+
+  accept(requestId: string): Promise<void> {
+    return request<void>(`/api/v1/friends/requests/${requestId}/accept`, { method: "POST" });
+  },
+
+  decline(requestId: string): Promise<void> {
+    return request<void>(`/api/v1/friends/requests/${requestId}/decline`, { method: "POST" });
+  },
+
+  remove(friendUserId: string): Promise<void> {
+    return request<void>(`/api/v1/friends/${friendUserId}`, { method: "DELETE" });
+  },
+
+  updateSharing(shareStreaks: boolean): Promise<UserDto> {
+    return request<UserDto>("/api/v1/friends/sharing", { method: "PUT", body: { shareStreaks } });
   },
 };
 

@@ -289,6 +289,66 @@ Habits scheduled for the caller's current local day:
 
 Streak rules: schedule-aware (unscheduled days never break a streak); the in-progress day/week doesn't break a streak until it is missed; `timesPerWeek` streaks are counted in weeks.
 
+## Friends
+
+Consent-first social layer. Sharing is **opt-in and off by default**: a friend who has not enabled it exposes nothing but their email address. Sharing grants a *summary*, never access — the habit endpoints stay owner-scoped and return 404 for a friend.
+
+### POST /api/v1/friends/requests (auth)
+
+```json
+{ "email": "arkadas@example.com" }
+```
+
+**204 — always**, whether or not the address belongs to an account. This is deliberate: reporting "no such user" would make the endpoint an account-enumeration oracle. Sending to yourself, to an existing friend, or twice is a silent no-op.
+
+If the other party already has a pending request to you, this **auto-accepts** it: asking back is consent.
+
+### GET /api/v1/friends/requests (auth)
+
+```json
+{
+  "incoming": [{ "requestId": "guid", "userId": "guid", "email": "…", "createdAt": "…" }],
+  "outgoing": [{ "requestId": "guid", "userId": "guid", "email": "…", "createdAt": "…" }]
+}
+```
+
+### POST /api/v1/friends/requests/{id}/accept · /decline (auth)
+
+**204**. Only the **addressee** may respond — the requester gets **404**, as does anyone else. A declined request can be reopened by sending a new one.
+
+### GET /api/v1/friends (auth)
+
+```json
+[
+  {
+    "userId": "guid",
+    "email": "arkadas@example.com",
+    "sharingEnabled": true,
+    "activeHabits": 4,
+    "bestStreak": 12,
+    "bestStreakUnit": "days",
+    "bestStreakHabitName": "Meditasyon",
+    "completedToday": 2,
+    "scheduledToday": 3,
+    "friendsSince": "2026-06-10T00:00:00Z"
+  }
+]
+```
+
+When `sharingEnabled` is false every stat is **null** — absence of consent is absence of data, not a zero. Today's figures are computed in that friend's own timezone.
+
+### DELETE /api/v1/friends/{userId} (auth)
+
+**204**, removing the row so neither side keeps visibility. **404** if you are not friends.
+
+### PUT /api/v1/friends/sharing (auth)
+
+```json
+{ "shareStreaks": true }
+```
+
+**200** returns the updated user. Turning it off hides the data on the next read.
+
 ## Admin
 
 Every route below requires a JWT carrying `role: Admin`. Ordinary users get **403**, anonymous callers **401**. Admin status does **not** widen the habit endpoints — an admin still gets 404 for someone else's habit.
