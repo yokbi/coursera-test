@@ -260,6 +260,19 @@ public class AuthService(
             .Where(f => f.RequesterId == userId || f.AddresseeId == userId)
             .ToListAsync(ct);
         db.Friendships.RemoveRange(friendships);
+        // Group membership is consent too: it must not outlive the account.
+        var memberships = await db.HabitGroupMembers.Where(m => m.UserId == userId).ToListAsync(ct);
+        db.HabitGroupMembers.RemoveRange(memberships);
+        var ownedGroups = await db.HabitGroups
+            .Include(g => g.Members)
+            .Where(g => g.OwnerId == userId)
+            .ToListAsync(ct);
+        foreach (var group in ownedGroups)
+        {
+            db.HabitGroupMembers.RemoveRange(group.Members);
+        }
+
+        db.HabitGroups.RemoveRange(ownedGroups);
         await RevokeAllRefreshTokensAsync(userId, ct);
         await db.SaveChangesAsync(ct);
     }

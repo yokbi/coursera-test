@@ -2,6 +2,27 @@
 
 Production-grade habit tracking web app. Turkish UI, English codebase.
 
+## Features
+
+**Habits & progress** — three habit types (done/not-done, quantity, duration) on three
+schedules (daily, specific weekdays, X times per week). Timezone-aware streaks, a
+weekly grid, per-habit stats with a 90-day heatmap, archive and reorder.
+
+**Accounts** — email + password or **Google sign-in**, JWT with rotating refresh
+tokens, password change, and account deletion with anonymization.
+
+**Reminders** — opt-in daily email at an hour you choose in your own timezone,
+listing only what is still pending. One-click unsubscribe, no login required.
+
+**Friends** — friend requests and a friend list, with **opt-in** streak sharing.
+Sharing is a summary, never access: friends can see a best streak, not your habits.
+
+**Groups** — shared goals with friends. Each member links their *own* habit; joining
+is a separate, narrower consent than friend sharing.
+
+**Admin** — role-based panel for user search, suspension and system metrics. Admins
+manage accounts, not content: they get no window into anyone's habits.
+
 - **Frontend:** Next.js 16 (App Router) · TypeScript strict · Tailwind CSS 4 · zod
 - **Backend:** .NET 8 Web API · Clean Architecture · EF Core + Npgsql · FluentValidation · Serilog
 - **Database:** PostgreSQL 16 (Docker)
@@ -59,6 +80,19 @@ Frontend: `NEXT_PUBLIC_API_URL` (default `http://localhost:5000`).
 | Backend integration | `cd backend && dotnet test tests/HabitTracker.IntegrationTests` | needs Docker (Testcontainers PostgreSQL) |
 | Frontend unit | `cd frontend && npm test` | Vitest + Testing Library |
 | E2E | `docker compose up -d && cd frontend && npm run test:e2e` | Playwright; boots API + web automatically |
+
+Optional features are off until configured — Google sign-in hides its button without
+credentials, and the reminder scheduler does not run. See `.env.example` and
+[docs/API.md](docs/API.md) for the settings.
+
+Grant yourself the admin panel:
+
+```bash
+dotnet run --project backend/src/HabitTracker.Api -- promote-admin kisi@example.com
+```
+
+Role lives in the access token, so sign in again afterwards. The seeded demo account
+is already an admin.
 
 Backend coverage (Domain + Application):
 

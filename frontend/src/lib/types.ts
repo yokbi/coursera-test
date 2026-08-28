@@ -55,6 +55,45 @@ export interface FriendRequestDto {
   createdAt: string;
 }
 
+export interface GroupSummaryDto {
+  id: string;
+  name: string;
+  description: string | null;
+  color: string;
+  icon: string;
+  isOwner: boolean;
+  joined: boolean;
+  memberCount: number;
+  createdAt: string;
+}
+
+export interface GroupMemberProgressDto {
+  userId: string;
+  email: string;
+  isOwner: boolean;
+  isYou: boolean;
+  habitName: string;
+  habitIcon: string;
+  currentStreak: number;
+  streakUnit: "days" | "weeks";
+  completedToday: boolean;
+  scheduledToday: boolean;
+  completionsLast7Days: number;
+  joinedAt: string;
+}
+
+export interface GroupDetailDto {
+  id: string;
+  name: string;
+  description: string | null;
+  color: string;
+  icon: string;
+  isOwner: boolean;
+  members: GroupMemberProgressDto[];
+  pendingInvitees: { userId: string; email: string }[];
+  createdAt: string;
+}
+
 export interface FriendRequestsDto {
   incoming: FriendRequestDto[];
   outgoing: FriendRequestDto[];

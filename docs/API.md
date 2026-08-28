@@ -349,6 +349,75 @@ When `sharingEnabled` is false every stat is **null** — absence of consent is 
 
 **200** returns the updated user. Turning it off hides the data on the next read.
 
+## Habit groups
+
+A group is a shared goal. Each member links **their own** habit to it; the group projects only that habit's progress. Joining is the consent, and it is independent of the friend-list sharing flag — a narrower grant, scoped to one habit and one group.
+
+A member may only ever link a habit they own; anything else returns **404**.
+
+### GET /api/v1/groups (auth)
+
+Groups you are in, including invitations you have not answered (`joined: false`).
+
+```json
+[{ "id": "guid", "name": "Sabah koşusu", "description": null, "color": "#22c55e",
+   "icon": "🏃", "isOwner": true, "joined": true, "memberCount": 3,
+   "createdAt": "2026-07-01T00:00:00Z" }]
+```
+
+### POST /api/v1/groups (auth)
+
+```json
+{ "name": "Sabah koşusu", "description": "Birlikte", "color": "#22c55e", "icon": "🏃", "habitId": "guid" }
+```
+
+**201**. The creator joins immediately — creating a group is itself consent. **404** if the habit is not yours, **400** on validation.
+
+### GET /api/v1/groups/{id} (auth)
+
+```json
+{
+  "id": "guid", "name": "Sabah koşusu", "isOwner": true,
+  "members": [{
+    "userId": "guid", "email": "arkadas@example.com", "isOwner": false, "isYou": false,
+    "habitName": "Sabah koşusu", "habitIcon": "🏃",
+    "currentStreak": 5, "streakUnit": "days",
+    "completedToday": true, "scheduledToday": true, "completionsLast7Days": 6,
+    "joinedAt": "2026-07-02T00:00:00Z"
+  }],
+  "pendingInvitees": [{ "userId": "guid", "email": "davetli@example.com" }]
+}
+```
+
+- **403** for an invitee who has not joined — an invitation is not consent.
+- **404** for anyone who is not in the group at all.
+- `pendingInvitees` is empty for everyone but the owner.
+- Today's figures use each member's own timezone.
+
+### POST /api/v1/groups/{id}/invitations (auth, owner only)
+
+```json
+{ "userId": "guid" }
+```
+
+**204**. **422** if the target is not an accepted friend, **404** if you are not the owner. Re-inviting an existing member is a no-op.
+
+### POST /api/v1/groups/{id}/join · /decline (auth, invitee only)
+
+Join takes `{ "habitId": "guid" }` — your own habit. **204**. **404** for a missing invitation or a habit you do not own. Declining removes the invitation entirely.
+
+### PUT /api/v1/groups/{id}/habit (auth, joined member)
+
+`{ "habitId": "guid" }` swaps which of *your* habits this group tracks. **204**, or **404** for a habit you do not own.
+
+### POST /api/v1/groups/{id}/leave (auth)
+
+**204**. **422** for the owner — delete the group instead of stranding it.
+
+### DELETE /api/v1/groups/{id}/members/{userId} · DELETE /api/v1/groups/{id} (auth, owner only)
+
+Remove a member, or delete the group and every membership. **204**, **404** for non-owners.
+
 ## Admin
 
 Every route below requires a JWT carrying `role: Admin`. Ordinary users get **403**, anonymous callers **401**. Admin status does **not** widen the habit endpoints — an admin still gets 404 for someone else's habit.

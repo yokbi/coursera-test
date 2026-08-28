@@ -4,6 +4,8 @@ import type {
   AuthResponse,
   FriendDto,
   FriendRequestsDto,
+  GroupDetailDto,
+  GroupSummaryDto,
   CheckInDto,
   CheckInResultDto,
   HabitDto,
@@ -258,6 +260,59 @@ export const friendsApi = {
 
   updateSharing(shareStreaks: boolean): Promise<UserDto> {
     return request<UserDto>("/api/v1/friends/sharing", { method: "PUT", body: { shareStreaks } });
+  },
+};
+
+// --- Groups ---
+
+export const groupsApi = {
+  list(): Promise<GroupSummaryDto[]> {
+    return request<GroupSummaryDto[]>("/api/v1/groups");
+  },
+
+  get(groupId: string): Promise<GroupDetailDto> {
+    return request<GroupDetailDto>(`/api/v1/groups/${groupId}`);
+  },
+
+  create(payload: {
+    name: string;
+    description: string | null;
+    color: string;
+    icon: string;
+    habitId: string;
+  }): Promise<GroupSummaryDto> {
+    return request<GroupSummaryDto>("/api/v1/groups", { method: "POST", body: payload });
+  },
+
+  invite(groupId: string, userId: string): Promise<void> {
+    return request<void>(`/api/v1/groups/${groupId}/invitations`, {
+      method: "POST",
+      body: { userId },
+    });
+  },
+
+  join(groupId: string, habitId: string): Promise<void> {
+    return request<void>(`/api/v1/groups/${groupId}/join`, { method: "POST", body: { habitId } });
+  },
+
+  decline(groupId: string): Promise<void> {
+    return request<void>(`/api/v1/groups/${groupId}/decline`, { method: "POST" });
+  },
+
+  changeHabit(groupId: string, habitId: string): Promise<void> {
+    return request<void>(`/api/v1/groups/${groupId}/habit`, { method: "PUT", body: { habitId } });
+  },
+
+  leave(groupId: string): Promise<void> {
+    return request<void>(`/api/v1/groups/${groupId}/leave`, { method: "POST" });
+  },
+
+  removeMember(groupId: string, userId: string): Promise<void> {
+    return request<void>(`/api/v1/groups/${groupId}/members/${userId}`, { method: "DELETE" });
+  },
+
+  remove(groupId: string): Promise<void> {
+    return request<void>(`/api/v1/groups/${groupId}`, { method: "DELETE" });
   },
 };
 
