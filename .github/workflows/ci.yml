@@ -132,3 +132,48 @@ jobs:
           name: playwright-report
           path: frontend/playwright-report/
           retention-days: 7
+
+  # C4 — imajlar gerçekten derleniyor mu?
+  #
+  # Bir Dockerfile okunarak doğrulanamaz: eksik bir COPY ya da yanlış bir yol
+  # ancak derlemede ortaya çıkar. İş ayrı, çünkü diğerlerinden yavaş ve
+  # onların sonucunu beklemesi için bir sebep yok.
+  docker:
+    name: Docker imajları
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: API imajı
+        run: docker build -t habittracker-api ./backend
+
+      - name: Frontend imajı
+        run: docker build -t habittracker-web ./frontend
+
+      # Derlenen imaj bir de AÇILIYOR mu: yanlış bir ENTRYPOINT derlemede
+      # değil, ilk çalıştırmada patlar.
+      - name: Yığın ayağa kalkıyor mu
+        run: |
+          set -euo pipefail
+          docker compose up -d --wait --wait-timeout 180 db api
+          # API migration'ları uygularken birkaç saniye alabiliyor.
+          for i in $(seq 1 30); do
+            if curl -fsS http://localhost:5000/swagger/index.html >/dev/null 2>&1 \
+               || curl -fsS http://localhost:5000/ >/dev/null 2>&1; then
+              echo "API yanıt veriyor"
+              exit 0
+            fi
+            sleep 3
+          done
+          echo "::error::API 90 saniyede yanıt vermedi"
+          docker compose logs api
+          exit 1
+
+      - name: Günlükler (hata durumunda)
+        if: failure()
+        run: docker compose logs
+
+      - name: Temizlik
+        if: always()
+        run: docker compose down -v

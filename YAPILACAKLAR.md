@@ -61,30 +61,39 @@ daha bilgilendirici.
 
 ---
 
-## C4 🟢 Tek komutla tam yığın (Docker Compose genişletmesi)
+## C4 ✅ Tek komutla tam yığın — yazıldı, CI derliyor
 
-**Sorun:** `docker-compose.yml` yalnızca PostgreSQL'i kaldırıyor. API ve frontend
-elle başlatılıyor — README'deki "quick start" beş komut.
-
-Bu turda eklenen `run-mac-intel.sh` betiği bu beş adımı tek komuta indiriyor,
-yani acil bir sorun değil. Ama gerçek "tek komut" için Compose'a `api` ve `web`
-servisleri eklenebilir:
-
-```yaml
-  api:
-    build: ./backend
-    depends_on:
-      db: { condition: service_healthy }
-    ports: ["5000:8080"]
-    environment:
-      ConnectionStrings__Default: "Host=db;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}"
+```bash
+docker compose up --build
 ```
 
-Bunun için `backend/Dockerfile` ve `frontend/Dockerfile` yazılması gerekir
-(şu an ikisi de yok).
+- `backend/Dockerfile` — SDK ile derleyip çalışma zamanı imajına yalnızca
+  çıktıyı taşıyan iki aşama; kök olmayan `app` kullanıcısı.
+- `frontend/Dockerfile` — `output: 'standalone'` sayesinde imaj bütün
+  `node_modules` ağacını taşımıyor.
+- `docker-compose.yml` — `db` (sağlıklı) → `api` → `web`.
+- `.dockerignore` — ana makinenin `node_modules`/`bin`/`obj` çıktıları ve
+  `.env` imaja girmiyor.
 
-**Kazanç:** Yeni bir makinede kurulum "Docker kur + `docker compose up`"a iner.
-**Maliyet:** İki Dockerfile + Compose bakımı.
+**Migration ayrı bir servis DEĞİL.** API başlangıçta uyguluyor (Development'ta
+zaten öyleydi) ve bu yığında tek bir API kopyası var; ayrı bir servis kurulum
+adımını ikiye bölmekten başka bir işe yaramazdı. Çok kopyalı bir dağıtımda bu
+karar değişir.
+
+**`NEXT_PUBLIC_API_URL` build argümanı**, çünkü Next onu derleme anında
+gömüyor: bu bir dağıtım kararı, çalışma anı ayarı değil. Değer tarayıcıdan
+görülebilen adres olmalı — `http://api:8080` konteyner ağında geçerli ama
+tarayıcıda çözülmez.
+
+**Doğrulama CI'da.** Bir Dockerfile okunarak doğrulanamaz; eksik bir `COPY` ya
+da yanlış bir yol ancak derlemede ortaya çıkar. Yeni `docker` işi iki imajı da
+derliyor **ve** yığını ayağa kaldırıp API'nin yanıt verdiğini görüyor — yanlış
+bir `ENTRYPOINT` derlemede değil, ilk çalıştırmada patlar.
+
+> Bu ortamda Docker daemon yok; imajlar burada derlenmedi. Derlemenin can alıcı
+> iki adımı ayrı ayrı koşuldu: `dotnet publish` çıktı üretti ve
+> `npm run build` `.next/standalone/server.js`'i gerçekten yazdı — Dockerfile'daki
+> `COPY` yolları o yerleşime karşı kontrol edildi.
 
 ---
 
@@ -137,6 +146,5 @@ veritabanı seviyesinde onlardan cascade ediyor. Kullanıcı satırı hâlâ dur
 ## Öncelik sırası önerisi
 
 1. **C1** — depoyu yeniden adlandır *(Settings'ten, 1 dakika)*
-2. **C4** — Compose genişletmesi *(Docker gerektirir; bu ortamda daemon yok)*
-3. Kalan iki doğrulama: gerçek SMTP ve gerçek Google OAuth — ikisi de senin
+2. Kalan iki doğrulama: gerçek SMTP ve gerçek Google OAuth — ikisi de senin
    anahtarını istiyor

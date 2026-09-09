@@ -1,0 +1,11 @@
+# Konteynere ana makinenin çıktıları sızmasın: bağımlılıklar imajda yeniden
+# kurulur ve platforma özgü ikili dosyalar taşınamaz.
+**/node_modules
+**/bin
+**/obj
+**/.next
+**/TestResults
+.git
+.github
+*.log
+.env
