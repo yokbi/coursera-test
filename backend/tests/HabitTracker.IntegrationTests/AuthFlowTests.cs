@@ -1,5 +1,8 @@
 using System.Net;
 using System.Net.Http.Json;
+using HabitTracker.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using static HabitTracker.IntegrationTests.ApiClientHelpers;
 
 namespace HabitTracker.IntegrationTests;
@@ -288,6 +291,55 @@ public class AuthFlowTests(PostgresFixture postgres) : IDisposable
         var reRegister = await client.PostAsJsonAsync("/api/v1/auth/register",
             new { email, password = "Str0ngPass!x" });
         Assert.Equal(HttpStatusCode.OK, reRegister.StatusCode);
+    }
+
+    [Fact]
+    public async Task DeleteAccount_TakesTheHabitsAndCheckInsWithIt()
+    {
+        var client = CreateClient();
+        var email = UniqueEmail();
+        var (auth, _) = await client.RegisterAsync(email);
+        client.DefaultRequestHeaders.Authorization = new("Bearer", auth.AccessToken);
+
+        // A habit's name is text the user wrote about themselves, and a check-in says
+        // what they did on a given day. Both are personal data, so deletion has to
+        // reach them - an anonymized user row with the habits still hanging off it
+        // would not be deleted data.
+        var created = await client.PostAsJsonAsync("/api/v1/habits", new
+        {
+            name = "Sabah yuruyusu",
+            color = "#22c55e",
+            icon = "\U0001F6B6",
+            type = "boolean",
+            scheduleType = "daily"
+        });
+        Assert.Equal(HttpStatusCode.Created, created.StatusCode);
+
+        Guid userId;
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            userId = (await db.Users.SingleAsync(u => u.Email == email)).Id;
+            Assert.True(await db.Habits.AnyAsync(h => h.UserId == userId));
+        }
+
+        var delete = new HttpRequestMessage(HttpMethod.Delete, "/api/v1/auth/account")
+        {
+            Content = JsonContent.Create(new { password = "Str0ngPass!x" })
+        }.WithBearer(auth.AccessToken);
+        Assert.Equal(HttpStatusCode.NoContent, (await client.SendAsync(delete)).StatusCode);
+
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            Assert.False(await db.Habits.AnyAsync(h => h.UserId == userId));
+            // Check-ins cascade from the habit at the database level.
+            Assert.False(await db.CheckIns.AnyAsync(c => c.UserId == userId));
+            // The row itself stays, anonymized, so foreign keys and audit history hold.
+            var user = await db.Users.SingleAsync(u => u.Id == userId);
+            Assert.True(user.IsDeleted);
+            Assert.DoesNotContain(email, user.Email);
+        }
     }
 
     [Fact]

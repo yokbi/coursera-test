@@ -34,7 +34,16 @@ OWASP Top 10 (2021).
 
 - Account lockout: 5 consecutive failures → 15-minute lockout.
 - Check-in edit window (7 days, user-timezone aware) enforced server-side.
-- Soft delete everywhere: user data is never hard-deleted by user actions.
+- Soft delete everywhere: user data is never hard-deleted by user actions, with
+  **one deliberate exception**. Deleting an account anonymizes the user row
+  (email, password hash, Google link) and keeps it so foreign keys and audit
+  history hold, but it *does* hard-delete the things the user wrote about
+  themselves: habits (name, description) and, cascading from them, check-ins,
+  plus friendships and group memberships. A habit title is free text a person
+  wrote about their own life, so KVKK's right to erasure reaches it: an
+  anonymized row with the habits still hanging off it is not deleted data.
+  `AuthService.DeleteAccountAsync` is the single place this happens, and
+  `AuthFlowTests.DeleteAccount_TakesTheHabitsAndCheckInsWithIt` holds it.
 
 ## A05 — Security Misconfiguration
 
