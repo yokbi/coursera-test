@@ -256,6 +256,13 @@ public class AuthService(
         user.GoogleSubject = null;
         // Sharing must not outlive the account, and the pairs are freed for reuse.
         user.ShareStreaksWithFriends = false;
+        // A habit's name and description are text the user wrote about themselves, so
+        // they are personal data and deletion has to reach them: an anonymized row with
+        // the habits still hanging off it is not deleted data. Check-ins cascade from
+        // the habit at the database level. This is the one deliberate exception to the
+        // soft-delete rule in docs/SECURITY.md.
+        var habits = await db.Habits.Where(h => h.UserId == userId).ToListAsync(ct);
+        db.Habits.RemoveRange(habits);
         var friendships = await db.Friendships
             .Where(f => f.RequesterId == userId || f.AddresseeId == userId)
             .ToListAsync(ct);

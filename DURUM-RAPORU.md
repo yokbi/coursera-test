@@ -113,13 +113,17 @@ listesi ve çalıştırma betikleri eklendi.
 üretim düzeyi uygulama var. Depo listenizde bu proje gözden kaçıyor.
 → `YAPILACAKLAR.md` C1
 
-### 🟡 C2 — Backend bu ortamda hiç doğrulanmadı
-Yazılmış ama bu turda derlenmedi/çalıştırılmadı (.NET SDK yok). Yarın ilk iş
-bu olmalı. → C2
+### ✅ C2 — Backend doğrulandı (bu oturumda değil, CI'da)
+Bu ortamda .NET SDK yok, ama gerek de yokmuş: `main` üzerindeki
+[CI koşusu #13](https://github.com/yokbi/coursera-test/actions/runs/34157063139)
+backend'i Release derliyor, birim ve entegrasyon testlerini (Testcontainers ile
+gerçek PostgreSQL) koşuyor ve kapsam kapısını geçiyor. Üçü de yeşil.
+Denetim turu bu koşuya bakmamış. → `YAPILACAKLAR.md` "Kapananlar"
 
-### 🟢 C3 — CI yok
-`.github/workflows/` bulunmuyor. Frontend testleri hızlı (6 sn) ve değerli;
-en azından onlar PR'larda koşabilir. → C3
+### ❌ C3 — "CI yok" tespiti yanlıştı
+`.github/workflows/ci.yml` 2026-08-08'den beri mevcut ve üç iş koşuyor:
+backend (derleme + iki test katmanı + kapsam), frontend (lint + test + derleme),
+ve Playwright'ı gerçek yığına karşı koşan e2e. Bu bulgu geri çekildi.
 
 ### 🟢 C4 — Docker Compose yalnızca veritabanını kaldırıyor
 `docker-compose.yml` sadece PostgreSQL içeriyor; API ve frontend elle
@@ -160,7 +164,9 @@ frontend'i (`:3000`) ön planda başlatır.
 
 Demo giriş (seed sonrası): `demo@habittracker.local` / `Demo1234!`
 
-**Asıl bakılacak:** Backend derleniyor mu, `dotnet test` geçiyor mu (C2).
+**Asıl bakılacak:** Uygulamanın kendisi — kayıt, alışkanlık ekleme, seri hesabı,
+yönetim paneli. Backend'in derlendiği ve testlerinin geçtiği artık CI'da ölçülü
+(C2 kapandı), yani makinende tekrar etmene gerek yok.
 
 ---
 
