@@ -21,10 +21,16 @@ Kanıt: [CI koşusu #13](https://github.com/yokbi/coursera-test/actions/runs/341
 | **C3** CI ekleyin | ✅ **Madde hatalıydı.** `.github/workflows/ci.yml` 2026-08-08'den beri mevcut ve önerilenden çok daha kapsamlı: üç iş (backend, frontend, e2e), her push ve PR'da. Denetim raporu dosyanın yokluğunu yanlış tespit etmiş. |
 | **C5** Playwright uçtan uca testleri | ✅ CI'daki `E2E` işi Playwright paketini gerçek yığına karşı koşuyor: PostgreSQL servis konteyneri, API kendi kendine başlıyor ve Development'ta migration uyguluyor, ardından Chromium. Geçti. |
 
-Bu ortamda (uzak oturum) **.NET SDK kurulamıyor** — `dot.net` indirme adresi
-ağ politikası tarafından engelli — ve Docker daemon yok. Yani backend burada
-elle derlenemez; doğrulama CI üzerinden yapılır. Kendi makinende koşturmak
-istersen komutlar aşağıdaki C4 bölümünün üstündeki eski C2 metnindeydi; özü:
+> **Düzeltme (2026-09-10).** Bu paragraf ".NET SDK bu ortamda kurulamıyor"
+> diyordu. Doğru değil: `dot.net` indirme adresi gerçekten ağ politikasıyla
+> engelli, ama dağıtımın kendi paket deposu değil —
+> `apt-get update && apt-get install dotnet-sdk-8.0` 8.0.131'i kuruyor. Backend
+> burada derlenebilir ve koşturulabilir; bu turda `/health` ucu tam da böyle
+> doğrulandı. Engelli olan tek bir indirme adresinden "SDK kurulamıyor"
+> sonucunu çıkarmak, denenmemiş bir varsayımdı.
+
+Docker daemon ise gerçekten yok, yani imajlar ve compose burada koşturulamaz;
+o taraf CI üzerinden doğrulanır. Kendi makinende koşturmak istersen özü:
 `cd backend && dotnet build && dotnet test tests/HabitTracker.UnitTests`,
 entegrasyon testleri için Docker açık olmalı.
 
@@ -61,30 +67,61 @@ daha bilgilendirici.
 
 ---
 
-## C4 🟢 Tek komutla tam yığın (Docker Compose genişletmesi)
+## C4 ✅ Tek komutla tam yığın — yazıldı, CI derliyor
 
-**Sorun:** `docker-compose.yml` yalnızca PostgreSQL'i kaldırıyor. API ve frontend
-elle başlatılıyor — README'deki "quick start" beş komut.
-
-Bu turda eklenen `run-mac-intel.sh` betiği bu beş adımı tek komuta indiriyor,
-yani acil bir sorun değil. Ama gerçek "tek komut" için Compose'a `api` ve `web`
-servisleri eklenebilir:
-
-```yaml
-  api:
-    build: ./backend
-    depends_on:
-      db: { condition: service_healthy }
-    ports: ["5000:8080"]
-    environment:
-      ConnectionStrings__Default: "Host=db;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}"
+```bash
+docker compose up --build
 ```
 
-Bunun için `backend/Dockerfile` ve `frontend/Dockerfile` yazılması gerekir
-(şu an ikisi de yok).
+- `backend/Dockerfile` — SDK ile derleyip çalışma zamanı imajına yalnızca
+  çıktıyı taşıyan iki aşama; kök olmayan `app` kullanıcısı.
+- `frontend/Dockerfile` — `output: 'standalone'` sayesinde imaj bütün
+  `node_modules` ağacını taşımıyor.
+- `docker-compose.yml` — `db` (sağlıklı) → `api` → `web`.
+- `.dockerignore` — ana makinenin `node_modules`/`bin`/`obj` çıktıları ve
+  `.env` imaja girmiyor.
 
-**Kazanç:** Yeni bir makinede kurulum "Docker kur + `docker compose up`"a iner.
-**Maliyet:** İki Dockerfile + Compose bakımı.
+**Migration ayrı bir servis DEĞİL.** API başlangıçta uyguluyor (Development'ta
+zaten öyleydi) ve bu yığında tek bir API kopyası var; ayrı bir servis kurulum
+adımını ikiye bölmekten başka bir işe yaramazdı. Çok kopyalı bir dağıtımda bu
+karar değişir.
+
+**`NEXT_PUBLIC_API_URL` build argümanı**, çünkü Next onu derleme anında
+gömüyor: bu bir dağıtım kararı, çalışma anı ayarı değil. Değer tarayıcıdan
+görülebilen adres olmalı — `http://api:8080` konteyner ağında geçerli ama
+tarayıcıda çözülmez.
+
+**Doğrulama CI'da.** Bir Dockerfile okunarak doğrulanamaz; eksik bir `COPY` ya
+da yanlış bir yol ancak derlemede ortaya çıkar. Yeni `docker` işi iki imajı da
+derliyor **ve** yığını ayağa kaldırıp API'nin yanıt verdiğini görüyor — yanlış
+bir `ENTRYPOINT` derlemede değil, ilk çalıştırmada patlar.
+
+> Bu ortamda Docker daemon yok; imajlar burada derlenmedi. Derlemenin can alıcı
+> iki adımı ayrı ayrı koşuldu: `dotnet publish` çıktı üretti ve
+> `npm run build` `.next/standalone/server.js`'i gerçekten yazdı — Dockerfile'daki
+> `COPY` yolları o yerleşime karşı kontrol edildi.
+
+**İlk CI koşusu bir şey öğretti.** İki imaj da derlendi, ama yığın açılmadı:
+compose `Jwt__SigningKey`'i boş bir değerle geçiyordu ve boş bir ortam
+değişkeni `appsettings.Development.json`'daki geliştirme anahtarını **eziyor**.
+API "anahtar yapılandırılmamış" diyerek çıktı — ki bu doğru davranış:
+anahtarsız açılan bir API, herkesin imzalayabildiği bir API demek. Değişken
+compose'dan kaldırıldı; geliştirmede anahtar appsettings'ten geliyor, üretimde
+ortamdan verilmek zorunda. Bir Dockerfile'ın okunarak doğrulanamayacağının
+canlı örneği.
+
+**İkinci koşu bir tane daha öğretti.** Bu sefer API gerçekten açıldı, migration'ları
+uyguladı ve 8080'i dinledi — ama iş yine düştü, çünkü hazır-mı yoklaması
+`/swagger/index.html` adresini çağırıyordu ve **bu API'de Swagger hiç kurulu
+değil**. Uç 404 döndü, döngü 90 saniye bekledi, iş "API yanıt vermedi" dedi;
+oysa API sapasağlam ayaktaydı. Yoklama, var olduğu doğrulanmış bir uca
+(`/health`, `Program.cs:172`) çevrildi. `/health` üstelik Npgsql üzerinden
+veritabanına da bakıyor, yani yeşil dönmesi "API açıldı **ve** Compose ağında
+db'ye ulaştı" demek.
+
+Ders, ilkinin aynısının başka bir kılığı: yoklamayı yazarken uç var sayıldı,
+kontrol edilmedi. İkisi de aynı sınıftan hata — kodu okumadan varsaymak — ve
+ikisini de yalnızca gerçekten çalıştırmak yakaladı.
 
 ---
 
@@ -137,6 +174,5 @@ veritabanı seviyesinde onlardan cascade ediyor. Kullanıcı satırı hâlâ dur
 ## Öncelik sırası önerisi
 
 1. **C1** — depoyu yeniden adlandır *(Settings'ten, 1 dakika)*
-2. **C4** — Compose genişletmesi *(Docker gerektirir; bu ortamda daemon yok)*
-3. Kalan iki doğrulama: gerçek SMTP ve gerçek Google OAuth — ikisi de senin
+2. Kalan iki doğrulama: gerçek SMTP ve gerçek Google OAuth — ikisi de senin
    anahtarını istiyor

@@ -16,5 +16,44 @@ services:
       timeout: 3s
       retries: 10
 
+  # C4 — API ve frontend de Compose'da: kurulum "Docker kur + docker compose up".
+  #
+  # Migration API'nin başlangıcında koşuyor (Development'ta zaten öyleydi);
+  # ayrı bir servis eklemedik çünkü bu yığında tek bir API kopyası var ve
+  # ikinci bir servis, kurulum adımını ikiye bölmekten başka bir işe yaramazdı.
+  api:
+    build:
+      context: ./backend
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Development}
+      ConnectionStrings__Default: "Host=db;Port=5432;Database=${POSTGRES_DB:-habittracker};Username=${POSTGRES_USER:-habittracker};Password=${POSTGRES_PASSWORD:-dev_only_password}"
+      # Jwt__SigningKey BİLEREK yok.
+      #
+      # Boş bir ortam değişkeni, `appsettings.Development.json`'daki geliştirme
+      # anahtarını EZİYOR ve API "anahtar yapılandırılmamış" diyerek açılmıyor —
+      # ilk CI koşusunda tam olarak bu oldu. Geliştirmede anahtar
+      # appsettings'ten geliyor; üretimde `Jwt__SigningKey` ortamda verilmek
+      # zorunda ve verilmezse API açılmıyor. Bu davranış doğru: anahtarsız
+      # açılan bir API, herkesin imzalayabildiği bir API demek.
+      Cors__AllowedOrigins__0: ${WEB_ORIGIN:-http://localhost:3000}
+      Ai__Provider: ${AI_PROVIDER:-Mock}
+    ports:
+      - "${API_PORT:-5000}:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  web:
+    build:
+      context: ./frontend
+      args:
+        # Tarayıcıdan görülen adres olmalı; `http://api:8080` konteyner ağında
+        # geçerli ama tarayıcıda çözülmez.
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:5000}
+    ports:
+      - "${WEB_PORT:-3000}:3000"
+    depends_on:
+      - api
+
 volumes:
   db-data:
