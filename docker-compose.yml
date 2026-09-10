@@ -27,9 +27,14 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Development}
       ConnectionStrings__Default: "Host=db;Port=5432;Database=${POSTGRES_DB:-habittracker};Username=${POSTGRES_USER:-habittracker};Password=${POSTGRES_PASSWORD:-dev_only_password}"
-      # Sırlar imajda değil, ortamda. Tanımsızsa API kendi geliştirme
-      # varsayılanlarıyla açılır — üretimde bunlar verilmek zorunda.
-      Jwt__SigningKey: ${JWT_SIGNING_KEY:-}
+      # Jwt__SigningKey BİLEREK yok.
+      #
+      # Boş bir ortam değişkeni, `appsettings.Development.json`'daki geliştirme
+      # anahtarını EZİYOR ve API "anahtar yapılandırılmamış" diyerek açılmıyor —
+      # ilk CI koşusunda tam olarak bu oldu. Geliştirmede anahtar
+      # appsettings'ten geliyor; üretimde `Jwt__SigningKey` ortamda verilmek
+      # zorunda ve verilmezse API açılmıyor. Bu davranış doğru: anahtarsız
+      # açılan bir API, herkesin imzalayabildiği bir API demek.
       Cors__AllowedOrigins__0: ${WEB_ORIGIN:-http://localhost:3000}
       Ai__Provider: ${AI_PROVIDER:-Mock}
     ports:

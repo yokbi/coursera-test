@@ -95,6 +95,15 @@ bir `ENTRYPOINT` derlemede değil, ilk çalıştırmada patlar.
 > `npm run build` `.next/standalone/server.js`'i gerçekten yazdı — Dockerfile'daki
 > `COPY` yolları o yerleşime karşı kontrol edildi.
 
+**İlk CI koşusu bir şey öğretti.** İki imaj da derlendi, ama yığın açılmadı:
+compose `Jwt__SigningKey`'i boş bir değerle geçiyordu ve boş bir ortam
+değişkeni `appsettings.Development.json`'daki geliştirme anahtarını **eziyor**.
+API "anahtar yapılandırılmamış" diyerek çıktı — ki bu doğru davranış:
+anahtarsız açılan bir API, herkesin imzalayabildiği bir API demek. Değişken
+compose'dan kaldırıldı; geliştirmede anahtar appsettings'ten geliyor, üretimde
+ortamdan verilmek zorunda. Bir Dockerfile'ın okunarak doğrulanamayacağının
+canlı örneği.
+
 ---
 
 ## C5 ✅ Playwright uçtan uca testleri — CI'da koşuyor
