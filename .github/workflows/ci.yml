@@ -153,20 +153,27 @@ jobs:
 
       # Derlenen imaj bir de AÇILIYOR mu: yanlış bir ENTRYPOINT derlemede
       # değil, ilk çalıştırmada patlar.
+      #
+      # Yoklanan uç `/health` (Program.cs:172). İlk yazdığımda burada
+      # `/swagger/index.html` vardı — bu API'de Swagger hiç kurulu değil, uç
+      # 404 veriyordu ve iş, API sapasağlam ayaktayken 90 saniye bekleyip
+      # düşüyordu. `/health` ayrıca Npgsql üzerinden veritabanına da bakıyor,
+      # yani yeşil dönmesi "API açıldı" değil "API açıldı ve Compose ağında
+      # db'ye ulaştı" demek — bu işin asıl sorusu da bu.
       - name: Yığın ayağa kalkıyor mu
         run: |
           set -euo pipefail
           docker compose up -d --wait --wait-timeout 180 db api
           # API migration'ları uygularken birkaç saniye alabiliyor.
           for i in $(seq 1 30); do
-            if curl -fsS http://localhost:5000/swagger/index.html >/dev/null 2>&1 \
-               || curl -fsS http://localhost:5000/ >/dev/null 2>&1; then
+            if curl -fsS http://localhost:5000/health >/dev/null 2>&1; then
               echo "API yanıt veriyor"
               exit 0
             fi
             sleep 3
           done
-          echo "::error::API 90 saniyede yanıt vermedi"
+          echo "::error::API 90 saniyede /health üzerinden yanıt vermedi"
+          curl -sS -i http://localhost:5000/health || true
           docker compose logs api
           exit 1
 

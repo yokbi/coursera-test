@@ -21,10 +21,16 @@ Kanıt: [CI koşusu #13](https://github.com/yokbi/coursera-test/actions/runs/341
 | **C3** CI ekleyin | ✅ **Madde hatalıydı.** `.github/workflows/ci.yml` 2026-08-08'den beri mevcut ve önerilenden çok daha kapsamlı: üç iş (backend, frontend, e2e), her push ve PR'da. Denetim raporu dosyanın yokluğunu yanlış tespit etmiş. |
 | **C5** Playwright uçtan uca testleri | ✅ CI'daki `E2E` işi Playwright paketini gerçek yığına karşı koşuyor: PostgreSQL servis konteyneri, API kendi kendine başlıyor ve Development'ta migration uyguluyor, ardından Chromium. Geçti. |
 
-Bu ortamda (uzak oturum) **.NET SDK kurulamıyor** — `dot.net` indirme adresi
-ağ politikası tarafından engelli — ve Docker daemon yok. Yani backend burada
-elle derlenemez; doğrulama CI üzerinden yapılır. Kendi makinende koşturmak
-istersen komutlar aşağıdaki C4 bölümünün üstündeki eski C2 metnindeydi; özü:
+> **Düzeltme (2026-09-10).** Bu paragraf ".NET SDK bu ortamda kurulamıyor"
+> diyordu. Doğru değil: `dot.net` indirme adresi gerçekten ağ politikasıyla
+> engelli, ama dağıtımın kendi paket deposu değil —
+> `apt-get update && apt-get install dotnet-sdk-8.0` 8.0.131'i kuruyor. Backend
+> burada derlenebilir ve koşturulabilir; bu turda `/health` ucu tam da böyle
+> doğrulandı. Engelli olan tek bir indirme adresinden "SDK kurulamıyor"
+> sonucunu çıkarmak, denenmemiş bir varsayımdı.
+
+Docker daemon ise gerçekten yok, yani imajlar ve compose burada koşturulamaz;
+o taraf CI üzerinden doğrulanır. Kendi makinende koşturmak istersen özü:
 `cd backend && dotnet build && dotnet test tests/HabitTracker.UnitTests`,
 entegrasyon testleri için Docker açık olmalı.
 
@@ -103,6 +109,19 @@ anahtarsız açılan bir API, herkesin imzalayabildiği bir API demek. Değişke
 compose'dan kaldırıldı; geliştirmede anahtar appsettings'ten geliyor, üretimde
 ortamdan verilmek zorunda. Bir Dockerfile'ın okunarak doğrulanamayacağının
 canlı örneği.
+
+**İkinci koşu bir tane daha öğretti.** Bu sefer API gerçekten açıldı, migration'ları
+uyguladı ve 8080'i dinledi — ama iş yine düştü, çünkü hazır-mı yoklaması
+`/swagger/index.html` adresini çağırıyordu ve **bu API'de Swagger hiç kurulu
+değil**. Uç 404 döndü, döngü 90 saniye bekledi, iş "API yanıt vermedi" dedi;
+oysa API sapasağlam ayaktaydı. Yoklama, var olduğu doğrulanmış bir uca
+(`/health`, `Program.cs:172`) çevrildi. `/health` üstelik Npgsql üzerinden
+veritabanına da bakıyor, yani yeşil dönmesi "API açıldı **ve** Compose ağında
+db'ye ulaştı" demek.
+
+Ders, ilkinin aynısının başka bir kılığı: yoklamayı yazarken uç var sayıldı,
+kontrol edilmedi. İkisi de aynı sınıftan hata — kodu okumadan varsaymak — ve
+ikisini de yalnızca gerçekten çalıştırmak yakaladı.
 
 ---
 
